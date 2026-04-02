@@ -23,7 +23,6 @@ func NewNullInt16Empty() NullInt16 {
 	return NullInt16{Valid: false}
 }
 
-//goland:noinspection GoUnusedExportedFunction
 func NullInt16FromString(strValue *string) NullInt16 {
 	if strValue == nil || *strValue == "" ||
 		strings.ToLower(*strValue) == "null" ||

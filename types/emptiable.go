@@ -7,7 +7,7 @@ import (
 	
 )
 
-type EmptyAble interface {
+type Emptiable interface {
 	IsEmpty() bool
 }
 
@@ -23,10 +23,12 @@ func IsEmpty(t interface{}) bool {
 	case sql.NullString, sql.NullFloat64, sql.NullInt64, sql.NullInt32, sql.NullInt16, sql.NullBool, sql.NullTime:
 		val, err := v.(driver.Valuer).Value()
 		return val == nil || err != nil
-	case NullString, NullFloat, NullInt64, NullInt32, NullInt16, NullBool, NullTime:
-		return v.(EmptyAble).IsEmpty()
-	case *NullString, *NullFloat, *NullInt64, *NullInt32, *NullInt16, *NullBool, *NullTime:
-		return v.(EmptyAble).IsEmpty()
+	case NullString, NullFloat, NullInt64, NullInt32, NullInt16, NullBool,
+		NullTime, NullDate, NullIsoDate, NullDateTime:
+		return v.(Emptiable).IsEmpty()
+	case *NullString, *NullFloat, *NullInt64, *NullInt32, *NullInt16, *NullBool,
+		*NullTime, *NullDate, *NullIsoDate, *NullDateTime:
+		return v.(Emptiable).IsEmpty()
 	default:
 		return false
 	}

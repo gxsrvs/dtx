@@ -33,7 +33,6 @@ func NewNullDateEmpty() NullDate {
 	return NullDate{Valid: false}
 }
 
-//goland:noinspection GoUnusedExportedFunction
 func NullDateFromString(strValue *string) NullDate {
 	if strValue == nil || *strValue == "" ||
 		strings.ToLower(*strValue) == "null" ||
@@ -62,7 +61,6 @@ func ParseDateFromString(strValue string) (*time.Time, error) {
 	return nil, errors.New("cannot parse date from " + strValue)
 }
 
-//goland:noinspection GoUnusedExportedFunction
 func DateToString(date time.Time) string {
 	return date.Format(time.DateOnly)
 }

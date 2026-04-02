@@ -5,7 +5,6 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"reflect"
-	"strings"
 )
 
 type NullString struct {
@@ -13,17 +12,15 @@ type NullString struct {
 	Valid bool // Valid is true if Val is not NULL
 }
 
-//goland:noinspection GoUnusedExportedFunction
 func NewNullString(value string) NullString {
 	return NullString{Val: value, Valid: true}
 }
 
-//goland:noinspection GoUnusedExportedFunction
 func NewNullStringEmpty() NullString {
 	return NullString{Valid: false}
 }
 
-//goland:noinspection GoMixedReceiverTypes,GoUnusedExportedFunction
+//goland:noinspection GoMixedReceiverTypes
 func NSFromString(s string) sql.NullString {
 	valid := true
 	if s == "" {
@@ -40,7 +37,7 @@ func (thisVal *NullString) IsEmpty() bool {
 	return !thisVal.Valid
 }
 
-//goland:noinspection GoMixedReceiverTypes,GoUnusedExportedFunction
+//goland:noinspection GoMixedReceiverTypes
 func GetNullString(s sql.NullString) string {
 	if s.Valid {
 		return s.String
@@ -97,7 +94,13 @@ func (thisVal *NullString) UnmarshalJSON(data []byte) error {
 		thisVal.Val = ""
 		return nil
 	}
-	s := strings.Trim(sd, "\"")
+
+	var s string
+	// json.Unmarshal сам уберет кавычки и превратит \u0026 в &
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+
 	thisVal.Valid = true
 	thisVal.Val = s
 	return nil

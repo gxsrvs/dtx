@@ -22,7 +22,6 @@ func NewNullTimeEmpty() NullTime {
 	return NullTime{Valid: false}
 }
 
-//goland:noinspection GoUnusedExportedFunction
 func NullTimeFromString(strValue *string) NullTime {
 	if strValue == nil || *strValue == "" ||
 		strings.ToLower(*strValue) == "null" ||

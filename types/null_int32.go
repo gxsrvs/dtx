@@ -23,7 +23,6 @@ func NewNullInt32Empty() NullInt32 {
 	return NullInt32{Valid: false}
 }
 
-//goland:noinspection GoUnusedExportedFunction
 func NullInt32FromString(strValue *string) NullInt32 {
 	if strValue == nil || *strValue == "" ||
 		strings.ToLower(*strValue) == "null" ||
@@ -37,7 +36,6 @@ func NullInt32FromString(strValue *string) NullInt32 {
 	return NewNullInt32(int32(result))
 }
 
-//goland:noinspection GoUnusedExportedFunction
 func NullInt32FromNullString(str NullString) NullInt32 {
 	if !str.Valid || str.Val == "" {
 		return NewNullInt32Empty()

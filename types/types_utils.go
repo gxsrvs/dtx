@@ -12,7 +12,6 @@ func isDigitString(s string) bool {
 	return true
 }
 
-//goland:noinspection GoUnusedExportedFunction
 func MaxDateTime(dt1, dt2 time.Time) time.Time {
 	if dt1.After(dt2) {
 		return dt1
@@ -63,7 +62,6 @@ func AssembleDateTimeTZ(
 	return AssembleDateTime(dateValue, timeValue, loc), nil
 }
 
-//goland:noinspection GoUnusedExportedFunction
 func AssembleNullDateTimeTZ(
 	dateValue *NullDate,
 	defaultDate *time.Time,
