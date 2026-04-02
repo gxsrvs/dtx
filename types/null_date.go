@@ -105,7 +105,7 @@ func (thisVal *NullDate) Scan(value interface{}) error {
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullDate) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
-		return []byte("null"), nil
+		return nullJson, nil
 	}
 	return json.Marshal(thisVal.Val.Format(time.DateOnly))
 }

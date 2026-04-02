@@ -56,7 +56,7 @@ func (thisVal *NullInt16) IsEmpty() bool {
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullInt16) ToString() string {
 	if !thisVal.Valid {
-		return "null"
+		return ""
 	}
 	return fmt.Sprintf("%d", thisVal.Val)
 }
@@ -88,7 +88,7 @@ func (thisVal *NullInt16) Scan(value interface{}) error {
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullInt16) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
-		return []byte("null"), nil
+		return nullJson, nil
 	}
 	return json.Marshal(thisVal.Val)
 }

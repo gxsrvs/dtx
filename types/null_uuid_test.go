@@ -7,7 +7,7 @@ import (
 func TestNullUuidFromString(t *testing.T) {
 	s := "550e8400-e29b-41d4-a716-446655440000"
 	nu := NullUuidFromString(&s)
-	if !nu.Valid || nu.UUID.String() != s {
+	if !nu.Valid || nu.Val.String() != s {
 		t.Errorf("Expected %s, got %v", s, nu)
 	}
 

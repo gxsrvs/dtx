@@ -77,7 +77,7 @@ func (thisVal *NullBool) Scan(value interface{}) error {
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullBool) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
-		return []byte("null"), nil
+		return nullJson, nil
 	}
 	return json.Marshal(thisVal.Val)
 }

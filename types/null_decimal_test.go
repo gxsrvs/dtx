@@ -9,12 +9,12 @@ import (
 func TestNullDecimalToString(t *testing.T) {
 	d := decimal.NewFromFloat(123.45)
 	nd := NewNullDecimal(d)
-	if s := NullDecimalToString(nd); s != "123.45" {
+	if s := nd.ToString(); s != "123.45" {
 		t.Errorf("Expected 123.45, got %s", s)
 	}
 
 	ndEmpty := NewNullDecimalEmpty()
-	if s := NullDecimalToString(ndEmpty); s != "null" {
+	if s := ndEmpty.ToString(); s != "" {
 		t.Errorf("Expected null, got %s", s)
 	}
 }
@@ -26,7 +26,7 @@ func TestMulNullDecimals(t *testing.T) {
 	nd2 := NewNullDecimal(d2)
 
 	res := MulNullDecimals(nd1, nd2)
-	if !res.Valid || !res.Decimal.Equal(decimal.NewFromInt(50)) {
+	if !res.Valid || !res.Val.Equal(decimal.NewFromInt(50)) {
 		t.Errorf("Expected 50, got %v", res)
 	}
 
