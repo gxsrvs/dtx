@@ -4,11 +4,10 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
+	"errors"
 	"reflect"
 	"strings"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 const (

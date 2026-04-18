@@ -9,9 +9,13 @@ coverage roadmap in `TESTS-PLAN.md`.
 
 `dtx` is a collection of nullable wrappers around Go primitives, intended to
 describe DTO structures that travel both through `database/sql` and through
-JSON. A typical consumer is a server that moves data along the path
-`DB → Go struct → JSON → client` (and back) and has to represent `NULL` at
-every hop.
+JSON. Typical consumers include:
+
+- HTTP/REST services: `DB → Go struct → JSON → client` (and back);
+- message-driven services: `Kafka / NATS / RabbitMQ → Go struct → business logic
+  → Kafka / NATS / RabbitMQ` (and back);
+- any pipeline where the same Go struct must survive JSON serialisation and
+  SQL scanning, and where `NULL` must be represented faithfully at every hop.
 
 ## 2. Repository layout
 
@@ -21,7 +25,7 @@ dtx/
 ├── types/               — nullable wrappers + base DateTime / TimeOnly types
 ├── utils/               — JSON-serialisation helpers
 ├── README.md            — user-facing documentation
-└── go.mod               — Go 1.26.1; deps: uuid, pkg/errors, shopspring/decimal
+└── go.mod               — Go 1.26.1; deps: google/uuid, shopspring/decimal
 ```
 
 ## 3. Strengths
@@ -50,8 +54,7 @@ dtx/
 ### 3.2. Organisational
 - License declared MIT (in the README).
 - Sensible package split (`types`, `utils`, `dto`).
-- Minimal external dependencies: `google/uuid`, `pkg/errors`,
-  `shopspring/decimal`.
+- Minimal external dependencies: `google/uuid`, `shopspring/decimal`.
 
 ## 4. Weaknesses and risks
 
@@ -129,8 +132,8 @@ dtx/
   direct assignment. That stylistic drift is worth removing in one direction.
 
 ### 4.4. Infrastructure
-- **No `LICENSE` file** in the repo root, even though the README claims MIT.
-  Go Modules and GitHub both require the file for a public module.
+- ~~No `LICENSE` file~~ — added (`LICENSE`, MIT). Third-party attribution
+  notices reproduced in `THIRD_PARTY_LICENSES.md`.
 - **No CI** (GitHub Actions / lint / test). Nothing currently guarantees
   that `master` stays green.
 - **No `CHANGELOG.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`.**
@@ -150,7 +153,7 @@ dtx/
 | Criterion                                   | Status |
 | ------------------------------------------- | :----: |
 | `go build` / `go test ./...` succeed        |   ✅   |
-| `LICENSE` file at repo root                 |   ❌   |
+| `LICENSE` file at repo root                 |   ✅   |
 | Package-level godoc                         |   ❌   |
 | Comments in English                         |   ⚠️   |
 | Unit-test coverage ≥ 80%                    |   ⚠️   |

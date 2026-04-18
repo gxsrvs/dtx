@@ -118,8 +118,12 @@ The library supports multiple date formats for parsing:
 
 ## Dependencies
 
-- `github.com/pkg/errors` - for error handling
-- `github.com/shopspring/decimal` - for precise decimal operations
+- `github.com/google/uuid` — UUID handling for `NullUuid`.
+- `github.com/shopspring/decimal` — arbitrary-precision decimals for `NullDecimal`.
+
+Both are permissive-licensed (BSD-3-Clause and MIT respectively). See
+[`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md) for the attribution
+notices that consumers of this library must preserve when redistributing.
 
 ## Contributing
 

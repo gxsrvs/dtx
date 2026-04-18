@@ -231,7 +231,8 @@ func ToJson(entity interface{}) (string, error)
 
 ## M9. 🟡 Add `LICENSE` + overhaul `README.md`
 
-Add a `LICENSE` file (MIT). Update the README per `REVIEW.md` §6:
+`LICENSE` (MIT) and `THIRD_PARTY_LICENSES.md` are already in place. The
+remaining work is the README overhaul per `REVIEW.md` §6:
 
 - badges (`pkg.go.dev`, Go Report Card, CI status, coverage),
 - full documentation of **every** public type,
