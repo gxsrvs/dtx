@@ -2,8 +2,6 @@ package types
 
 import (
 	"fmt"
-	
-	
 )
 
 type ToStringAble interface {

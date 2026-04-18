@@ -3,8 +3,6 @@ package types
 import (
 	"database/sql"
 	"database/sql/driver"
-	
-	
 )
 
 type Emptiable interface {

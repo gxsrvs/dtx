@@ -121,6 +121,15 @@ The library supports multiple date formats for parsing:
 - `github.com/pkg/errors` - for error handling
 - `github.com/shopspring/decimal` - for precise decimal operations
 
+## Contributing
+
+Contributions are welcome — please open an issue or a pull request.
+
+**Project language: English.** All repository artefacts (source code, godoc
+comments, Markdown documentation, commit messages, issue and pull request
+descriptions, configuration files) must be written in English. This keeps the
+project accessible to any Go developer who picks it up.
+
 ## License
 
 This library is available under the MIT License.
