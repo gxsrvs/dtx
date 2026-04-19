@@ -15,65 +15,38 @@ Priorities:
 
 ---
 
-## M1. 🔴 Non-null `Date`, `Time`, `DateTime` using the library’s serializer
+## Canonical type set (locked)
 
-**Motivation.** Today a consumer has to use bare `time.Time` for a required
-datetime field (which marshals via stdlib RFC3339, carrying a timezone),
-while optional fields use `types.NullDate` / `types.NullDateTime` /
-`types.NullTime` with the library’s own format. The two sides disagree,
-and the client has to parse both shapes. A non-null type that shares the
-same serializer with its nullable counterpart eliminates the split.
+The following layout is now the canonical naming for date/time types:
 
-**API sketch.**
+| Not-null            | Nullable                | TZ?  | JSON format                          |
+| ------------------- | ----------------------- | :--: | ------------------------------------ |
+| `Date`              | `NullDate`              |  —   | `2006-01-02`                         |
+| `OffsetTime`        | `NullOffsetTime`        | yes  | `15:04:05[.fff…]Z` / `±HH:MM`        |
+| `OffsetDateTime`    | `NullOffsetDateTime`    | yes  | RFC 3339 (`2006-01-02T15:04:05…Z`)   |
+| `LocalTime`         | `NullLocalTime`         |  no  | `15:04:05[.fff…]`                    |
+| `LocalDateTime`     | `NullLocalDateTime`     |  no  | `2006-01-02T15:04:05[.fff…]`         |
 
-```go
-// types/date.go
-type Date time.Time
-
-func NewDate(t time.Time) Date
-func DateFromString(s string) (Date, error)        // same formats as NullDate
-func (Date) MarshalJSON() ([]byte, error)          // "2006-01-02"
-func (*Date) UnmarshalJSON([]byte) error
-func (Date) Value() (driver.Value, error)          // time.Time
-func (*Date) Scan(interface{}) error
-func (Date) ToString() string
-func (Date) AsTime() time.Time
-
-// types/time.go — time-of-day
-type Time time.Time
-// same formats as NullTime (HH:MM[:SS[.ms]][+HH:MM])
-
-// types/datetime.go — update the existing DateTime:
-//   — add Value(),
-//   — remove the dead if/else branch in Scan,
-//   — align the format with NullDateTime.
-```
-
-**Principle.** `Date.MarshalJSON` and `NullDate.MarshalJSON` share a single
-private helper `formatDate(time.Time) string`. Likewise for `Time`,
-`DateTime`, `LocalDateTime`. Parsing goes through `parseDate`, `parseTime`,
-`parseDateTime`, `parseLocalDateTime` — one source of truth each.
-
-**Subtle point.** Unlike the nullable sibling, a non-null type cannot be
-“empty”. `UnmarshalJSON([]byte("null"))` must return an error. Today
-`DateTime.UnmarshalJSON` silently accepts `null` as a no-op; M1 fixes that.
+Each not-null type shares its serializer with the nullable counterpart via
+private `formatXxx` / `parseXxx` helpers. `Local*` parsers reject inputs
+that carry a TZ designator.
 
 ---
 
-## M2. 🔴 `LocalDateTime` and `NullLocalDateTime` (no timezone)
+## M1. ✅ Non-null `Date`, `OffsetTime`, `OffsetDateTime` with shared serializer
 
-**Motivation.** Business events are often anchored to a local wall-clock
-context (a contract is signed “on 2026-04-18 at 13:00” — a moment in the
-wall-clock time of an office, with no offset attached). `time.Time`
-always carries a zone and is the wrong model.
+Done. `Date` (date.go), `OffsetTime` (offset_time.go), `OffsetDateTime`
+(offset_datetime.go) all share their serializer with the nullable
+counterpart through `format_date.go`, `format_offset_time.go`,
+`format_offset_datetime.go`. Not-null `UnmarshalJSON("null")` returns an
+error.
 
-**Internal representation.**
+---
 
-Option A — a `time.Time` wrapper forced to `time.UTC` that silently drops
-the zone on marshal. The risk is that any comparison with an ordinary
-`time.Time` elsewhere may yield a wrong answer.
+## M2. ✅ `LocalDateTime` / `NullLocalDateTime` and `LocalTime` / `NullLocalTime`
 
-Option B (preferred) — a dedicated struct:
+Done. Both pairs are backed by a dedicated struct (no `time.Time` inside,
+no zone leak):
 
 ```go
 type LocalDateTime struct {
@@ -85,42 +58,26 @@ type LocalDateTime struct {
     Second  int
     Nanosec int
 }
-```
 
-Pros: explicit semantics, no zone leaks through `time.Time`, guards against
-accidentally using `time.Now()` as a value source. Con: slightly more code.
-
-**API sketch.**
-
-```go
-func NewLocalDateTime(y int, m time.Month, d, hh, mm, ss, ns int) LocalDateTime
-func LocalDateTimeFromString(s string) (LocalDateTime, error)  // "2006-01-02T15:04:05" / "2006-01-02 15:04:05"
-func (LocalDateTime) ToTime(loc *time.Location) time.Time
-func (LocalDateTime) MarshalJSON() ([]byte, error)             // "2006-01-02T15:04:05"
-func (*LocalDateTime) UnmarshalJSON([]byte) error
-func (LocalDateTime) Value() (driver.Value, error)
-func (*LocalDateTime) Scan(interface{}) error
-func (LocalDateTime) ToString() string
-
-type NullLocalDateTime struct {
-    Val   LocalDateTime
-    Valid bool
+type LocalTime struct {
+    Hour    int
+    Minute  int
+    Second  int
+    Nanosec int
 }
-
-// standard set: New, NewEmpty, FromString, IsEmpty, ToString,
-// Value, Scan, MarshalJSON, UnmarshalJSON.
 ```
 
-**Format.** `YYYY-MM-DDTHH:MM:SS[.fff]` with no offset, and no `Z` /
-`+NN:NN` suffix. A string carrying a TZ is rejected with an error to keep
-the semantics explicit.
+Format is `YYYY-MM-DDTHH:MM:SS[.fff…]` (and `HH:MM:SS[.fff…]` for
+`LocalTime`). Inputs with a TZ designator are rejected; `hasOffsetSuffix`
+in `types_utils.go` is the shared detector.
 
 ---
 
-## M3. 🔴 Fix `Scan` in every nullable type
+## M3. ✅ Fix `Scan` in every nullable type
 
-Replace `reflect.TypeOf(value) == nil` with the real source of truth —
-the `Valid` field of the embedded `sql.Null*`. For `NullDate`:
+Done. Every nullable `Scan` now derives `Valid` from the embedded
+`sql.Null*.Valid` field rather than `reflect.TypeOf(value) == nil`. For
+`NullDate`:
 
 ```go
 func (v *NullDate) Scan(value interface{}) error {
@@ -137,12 +94,10 @@ func (v *NullDate) Scan(value interface{}) error {
 }
 ```
 
-Affected files: `null_date.go`, `null_datetime.go`, `null_time.go`,
-`null_iso_date.go`, `null_string.go`, `null_bool.go`,
-`null_int{16,32,64}.go`, `null_float.go`, `null_decimal.go`,
-`null_uuid.go`.
-
-Cover with tests (see `TESTS-PLAN.md` §4.1).
+Files updated: `null_date.go`, `null_iso_date.go`, `null_string.go`,
+`null_bool.go`, `null_int{16,32,64}.go`, `null_float.go`,
+`null_decimal.go`, `null_uuid.go`. Covered by `scan_reset_test.go` plus
+the per-type Scan tests.
 
 ---
 
@@ -152,63 +107,62 @@ Rules:
 
 - `Valid == false` → `""` across every type (today `NullFloat` returns
   `"null"`),
-- for date/time types — the **same** format as `MarshalJSON`
-  (today `NullTime.ToString` calls `time.Time.String()`, while JSON uses
-  `Format(time.TimeOnly)`).
+- for date/time types — the **same** format as `MarshalJSON`.
 
-Affected: `null_float.go`, `null_time.go`.
+Status: ✅ done for the date/time family (`NullOffsetTime` now shares
+`formatOffsetTime` with `MarshalJSON`).
+
+Still 🟡: `null_float.go` returns `"null"` for invalid values where every
+other type returns `""`.
 
 ---
 
-## M5. 🟡 Rename `NullTime` for semantic clarity
+## M5. ✅ Rename ambiguous date/time types
 
-In this library `NullTime` is time-of-day; in `database/sql` `NullTime`
-means timestamp. The confusion is baked into the name. Options:
+Done:
 
-1. Rename `NullTime` → `NullTimeOfDay` / `NullClockTime`.
-2. Keep the name, but document the meaning clearly in godoc and README.
+- `TimeOnly` → `OffsetTime`
+- `NullTime` → `NullOffsetTime`
+- `DateTime` → `OffsetDateTime`
+- `NullDateTime` → `NullOffsetDateTime`
 
-Because the library has no external consumers yet, option 1 is preferred.
-Until v1.0 this is an acceptable breaking change.
-
-Similarly, an offset-less `NullDateTime` is misleading. M2 resolves that
-by introducing `NullLocalDateTime`.
+The chosen `Offset*` prefix makes the presence of a TZ offset explicit and
+avoids the `database/sql.NullTime` (timestamp) vs library-`NullTime`
+(time-of-day) confusion.
 
 ---
 
 ## M6. 🟡 Remove `//goland:noinspection` and stabilise receivers
 
-One receiver style per type. Recommendation:
+One receiver style per type:
 
 - **value receiver** for `Marshal*`, `Value()`, `ToString()` — read-only
   API,
 - **pointer receiver** for `Scan`, `Unmarshal*`, `IsEmpty` — mutating,
   and cheaper copies on larger types.
 
-Done once; afterwards every `//goland:noinspection GoMixedReceiverTypes`
-disappears.
+Status: ✅ for the new files (`date.go`, `offset_time.go`,
+`null_offset_time.go`, `offset_datetime.go`, `null_offset_datetime.go`,
+`local_*`).
+
+Still 🟡: the older nullable types (`null_string.go`, `null_bool.go`,
+`null_int*.go`, `null_float.go`, `null_decimal.go`, `null_uuid.go`,
+`null_iso_date.go`, `null_date.go`) still carry
+`//goland:noinspection GoMixedReceiverTypes` and inconsistent receivers.
 
 ---
 
-## M7. 🟡 Interface dispatch for `IsEmpty` / `ToString`
+## M7. ✅ Interface dispatch for `IsEmpty` / `ToString`
 
-Drop the hand-rolled type switch:
+Done. `IsEmpty` and `ToString` now dispatch through the `Emptiable` /
+`ToStringAble` interfaces. The previous hand-rolled `type switch` over
+the catalogue panicked at runtime for the value branches of
+pointer-receiver types (e.g. `IsEmpty(NullString{})`); the new
+implementation falls back to wrapping the value in a fresh pointer via
+`reflect.New` so pointer-receiver methods are reachable.
 
-```go
-func IsEmpty(v interface{}) bool {
-    if v == nil {
-        return true
-    }
-    if e, ok := v.(Emptiable); ok {
-        return e.IsEmpty()
-    }
-    // fallback: stdlib nullables, primitives
-    ...
-}
-```
-
-Same shape for `ToString`. Adding a new type no longer requires edits to
-`emptiable.go` / `string_able.go`.
+Adding a new type no longer requires edits to `emptiable.go` /
+`string_able.go`.
 
 ---
 
@@ -303,13 +257,13 @@ Driven by real-world usage:
 
 | Milestone | Description                                                  | Priority | Size |
 | --------- | ------------------------------------------------------------ | :------: | :--: |
-| M1        | Non-null Date/Time/DateTime + shared serializer              |    🔴    |  M   |
-| M2        | LocalDateTime / NullLocalDateTime                            |    🔴    |  L   |
-| M3        | `Scan` fix (use `sql.Null*.Valid`)                           |    🔴    |  M   |
-| M4        | Consistent `ToString`                                        |    🟡    |  S   |
-| M5        | `NullTime` rename (pre-v1.0 breaking change)                 |    🟡    |  S   |
-| M6        | Receivers + remove `//goland:noinspection`                   |    🟡    |  S   |
-| M7        | Interface dispatch for `IsEmpty` / `ToString`                |    🟡    |  S   |
+| M1        | Non-null Date/OffsetTime/OffsetDateTime + shared serializer  |    ✅    |  M   |
+| M2        | LocalDateTime/NullLocalDateTime + LocalTime/NullLocalTime    |    ✅    |  L   |
+| M3        | `Scan` fix (use `sql.Null*.Valid`) across every nullable     |    ✅    |  M   |
+| M4        | Consistent `ToString` — date/time done, `NullFloat` 🟡       |    🟡    |  S   |
+| M5        | Rename `Time*` / `DateTime*` → `Offset*` (breaking, pre-v1.0)|    ✅    |  S   |
+| M6        | Receivers + remove `//goland:noinspection` — new files done  |    🟡    |  S   |
+| M7        | Interface dispatch for `IsEmpty` / `ToString`                |    ✅    |  S   |
 | M8        | `utils.ToJson` returns an error                              |    🟡    |  S   |
 | M9        | LICENSE + README                                             |    🟡    |  S   |
 | M10       | godoc across the public API                                  |    🟡    |  M   |
@@ -321,4 +275,5 @@ Driven by real-world usage:
 Sizes: S ≈ up to one day, M ≈ two–three days, L ≈ up to a week.
 
 **Minimum work to reach the public release:** M1..M3 + M9 + M11, and ideally
-M10. Everything else can land iteratively.
+M10. M1..M3 (and M5, M7) are now done — the remaining release-blocking work
+is M9 (README overhaul) and M11 (CI pipeline).

@@ -5,7 +5,6 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strconv"
 	"strings"
 )
@@ -74,13 +73,11 @@ func (thisVal *NullInt32) Scan(value interface{}) error {
 	if err := s.Scan(value); err != nil {
 		return err
 	}
-
-	if reflect.TypeOf(value) == nil {
-		*thisVal = NullInt32{Val: s.Int32}
-	} else {
-		*thisVal = NullInt32{Val: s.Int32, Valid: true}
+	if !s.Valid {
+		*thisVal = NewNullInt32Empty()
+		return nil
 	}
-
+	*thisVal = NewNullInt32(s.Int32)
 	return nil
 }
 

@@ -5,7 +5,6 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strconv"
 	"strings"
 )
@@ -45,7 +44,7 @@ func (thisVal *NullFloat) IsEmpty() bool {
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullFloat) ToString() string {
 	if !thisVal.Valid {
-		return "null"
+		return ""
 	}
 	return fmt.Sprintf("%f", thisVal.Val)
 }
@@ -64,14 +63,11 @@ func (thisVal *NullFloat) Scan(value interface{}) error {
 	if err := s.Scan(value); err != nil {
 		return err
 	}
-
-	// if nil then make Valid false
-	if reflect.TypeOf(value) == nil {
-		*thisVal = NullFloat{Val: s.Float64}
-	} else {
-		*thisVal = NullFloat{Val: s.Float64, Valid: true}
+	if !s.Valid {
+		*thisVal = NewNullFloatEmpty()
+		return nil
 	}
-
+	*thisVal = NewNullFloat(s.Float64)
 	return nil
 }
 

@@ -4,20 +4,9 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
-	"errors"
-	"reflect"
 	"strings"
 	"time"
 )
-
-const (
-	RuOnlyDateMask = "02.01.2006"
-)
-
-var dateFormats = []string{
-	time.DateOnly,  // ISO
-	RuOnlyDateMask, // RUS
-}
 
 type NullDate struct {
 	Val   time.Time
@@ -38,30 +27,27 @@ func NullDateFromString(strValue *string) NullDate {
 		strings.ToLower(*strValue) == "nil" {
 		return NewNullDateEmpty()
 	}
-	parsed, err := ParseDateFromString(*strValue)
+	parsed, err := parseDate(*strValue)
 	if err != nil {
 		return NewNullDateEmpty()
 	}
-	return NewNullDate(*parsed)
+	return NewNullDate(parsed)
 }
 
+// ParseDateFromString parses a calendar date from a string using the formats
+// supported by the library (ISO 8601 and dd.MM.yyyy).
 func ParseDateFromString(strValue string) (*time.Time, error) {
-	// Перебираем форматы пока не удастся успешно распарсить
-	var parsed time.Time
-	var err error
-	for _, f := range dateFormats {
-		parsed, err = time.ParseInLocation(f, strValue, time.Local)
-		if err == nil {
-			return &parsed, nil
-		}
+	parsed, err := parseDate(strValue)
+	if err != nil {
+		return nil, err
 	}
-
-	// Если ни один формат не подошёл
-	return nil, errors.New("cannot parse date from " + strValue)
+	return &parsed, nil
 }
 
+// DateToString renders a calendar date in the library's canonical format
+// ("2006-01-02").
 func DateToString(date time.Time) string {
-	return date.Format(time.DateOnly)
+	return formatDate(date)
 }
 
 //goland:noinspection GoMixedReceiverTypes
@@ -74,7 +60,7 @@ func (thisVal *NullDate) ToString() string {
 	if !thisVal.Valid {
 		return ""
 	}
-	return thisVal.Val.Format(time.DateOnly)
+	return formatDate(thisVal.Val)
 }
 
 //goland:noinspection GoMixedReceiverTypes
@@ -91,13 +77,11 @@ func (thisVal *NullDate) Scan(value interface{}) error {
 	if err := s.Scan(value); err != nil {
 		return err
 	}
-
-	if reflect.TypeOf(value) == nil {
-		*thisVal = NullDate{Val: s.Time}
-	} else {
-		*thisVal = NullDate{Val: s.Time, Valid: true}
+	if !s.Valid {
+		*thisVal = NewNullDateEmpty()
+		return nil
 	}
-
+	*thisVal = NewNullDate(s.Time)
 	return nil
 }
 
@@ -106,7 +90,7 @@ func (thisVal NullDate) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
 		return nullJson, nil
 	}
-	return json.Marshal(thisVal.Val.Format(time.DateOnly))
+	return json.Marshal(formatDate(thisVal.Val))
 }
 
 //goland:noinspection GoMixedReceiverTypes
@@ -117,11 +101,11 @@ func (thisVal *NullDate) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 	s := strings.Trim(sd, "\"")
-	val, err := ParseDateFromString(s)
+	val, err := parseDate(s)
 	if err != nil {
 		return err
 	}
 	thisVal.Valid = true
-	thisVal.Val = *val
+	thisVal.Val = val
 	return nil
 }

@@ -8,6 +8,11 @@ Tests are plain `testing` + table-driven, without third-party frameworks.
 Integration scenarios that require `database/sql` semantics use
 `github.com/DATA-DOG/go-sqlmock`.
 
+**Current status:** unit-test coverage is at **95.0%** of statements in
+`types/`, **96.3%** in `utils/`, **100%** in `dto/`. Phases T1, T3, T4, T5
+and T6 are done; T2 (sqlmock integration), T7 (fuzzing), T8 (benchmarks)
+and T9 (CI) are still open.
+
 ## 1. Principles
 
 1. **Table-driven.** Each test is a `[]struct{ name string; in …; want …;
@@ -33,93 +38,119 @@ Integration scenarios that require `database/sql` semantics use
 
 ## 2. Coverage, file by file
 
-### 2.1. `types/null_string.go` — `null_string_test.go`
-Already has baseline tests. Extend with:
+### 2.1. `types/null_string.go` — `null_string_test.go` ⚠️
+Baseline plus `IsEmpty`, `ToString`, `Value`, `Scan`, JSON marshal/unmarshal
+are covered. The Scan transition "valid → NULL" is covered in
+`scan_reset_test.go`. Still open:
 - UnmarshalJSON for escaped characters (`"a\"b"`, `"\u0026"`),
 - Scan from `[]byte`, from `int` (error), from `time.Time` (error),
-- round-trip for non-ASCII strings,
-- `IsEmpty` reached through the `Emptiable` interface.
+- round-trip for non-ASCII strings.
 
-### 2.2. `types/null_bool.go` — `null_bool_test.go` *(new)*
-- `NewNullBool(true)`, `NewNullBoolEmpty()`, `NullBoolFromString`,
-- Scan from `bool`, `int64` (1/0), `[]byte("t")`, `nil`,
-- UnmarshalJSON: `true`, `false`, `null`, `"true"` (stringified),
-- MarshalJSON: invalid → `null`.
+### 2.2. `types/null_bool.go` — `null_bool_test.go` ✅
+Done. Covers constructors, `NullBoolFromString` (incl. `null`/`NIL`/garbage),
+`IsEmpty`, `ToString`, `Value`, `Scan` (bool, int64, nil), `MarshalJSON`,
+`UnmarshalJSON` (`true`/`false`/`null`/`"true"`/garbage).
 
-### 2.3. `types/null_int16.go`, `null_int32.go`, `null_int64.go`
-Partial coverage exists. Extend with:
-- boundary values (`math.MaxInt16`, `math.MinInt16`, overflow on
-  `FromString`),
-- Scan from `int64`, `int32`, `string("42")`, `nil`, and an unsupported
-  type,
-- UnmarshalJSON for numeric, stringified (`"42"`), `null`, floating
-  (`42.0`).
+### 2.3. `types/null_int16.go`, `null_int32.go`, `null_int64.go` ✅
+Done. Each has constructors, `FromString` (incl. overflow for int16, `null`
+sentinels), `FromNullString` (where present), `IsEmpty`, `ToString`,
+`Value`, `Scan` (int64, string, nil), `MarshalJSON`, `UnmarshalJSON`
+(numeric, stringified, `null`, garbage).
 
-### 2.4. `types/null_float.go` — `null_float_test.go` *(new)*
-- Boundary values (`+Inf`, `-Inf`, `NaN`: decide in the API whether they
-  are supported, then test).
-- Verify that `ToString()` returns `""` once the inconsistency documented
-  in `IMPROVE-PLAN.md` (M4) is fixed.
+Still open: Scan from an explicitly unsupported type and `Scan` from
+typed-nil drivers (`([]byte)(nil)`).
 
-### 2.5. `types/null_decimal.go` — `null_decimal_test.go`
-Extend with:
-- JSON round-trip on fractional values (0.1 + 0.2),
-- Scan from `string`, `[]byte`, `nil`; from `float64` (error),
-- `MulNullDecimals` — valid/invalid boundary,
-- `MarshalJSON` emits a bare number (no quotes) — check JS/TS
-  compatibility.
+### 2.4. `types/null_float.go` — `null_float_test.go` ✅
+Done. Covers constructors, `NullFloatFromString`, `IsEmpty`, `ToString`
+(documents the M4 inconsistency where invalid → `"null"`), `Value`, `Scan`,
+JSON marshal/unmarshal, and `math.MaxFloat64` boundary round-trip.
 
-### 2.6. `types/null_uuid.go`
-Extend with:
-- Scan from a UUID string, from `[]byte`, from `nil`,
-- `MarshalJSON` → `"xxxxxxxx-xxxx-…"`,
-- `UnmarshalJSON` for canonical, braced, upper-case, `null`.
+Still open: `+Inf` / `-Inf` / `NaN` — pending API decision whether they are
+supported (see `IMPROVE-PLAN.md` M4).
 
-### 2.7. `types/null_date.go`, `null_iso_date.go`
-Partial coverage exists. Extend with:
-- `ParseDateFromString` for both formats (`2006-01-02`, `02.01.2006`),
-- invalid inputs: `2023-13-01`, `31.02.2023`, `0000-00-00`, `2023/01/02`,
-- Scan from `time.Time`, `string`, `nil`,
-- UnmarshalJSON for `"2023-05-20"`, `"20.05.2023"`, `null`,
-- `DateToString` across time zones.
+### 2.5. `types/null_decimal.go` — `null_decimal_test.go` ⚠️
+Done: constructors, `NullDecimalFromString`, `IsEmpty`, `Scan` (string /
+`[]byte` / nil), JSON round-trip on `0.1 + 0.2`, marshal-empty → `null`,
+unmarshal-null + unmarshal-garbage. `MulNullDecimals` already covered.
 
-### 2.8. `types/null_datetime.go`, `datetime.go`
-- parse both separators (`T` and space),
-- fractional seconds (`2023-05-20T15:30:45.123`),
-- with timezone (`2023-05-20T15:30:45+03:00`,
-  `2023-05-20 15:30:45+0300`),
-- Scan from `time.Time`, `string`, `[]byte`, `nil`,
-- for the non-null `DateTime`: cover empty `Scan` branches, add `Value()`
-  (see `IMPROVE-PLAN.md` M1) and test it.
+Still open:
+- `Scan` from `float64` (error case),
+- explicit assertion that `MarshalJSON` emits a bare number (no quotes) —
+  for JS/TS compatibility.
 
-### 2.9. `types/null_time.go`, `time_only.go`
-- formats `HH:MM`, `HH:MM:SS`, `HH:MM:SS.ms`,
-- with timezone `15:30:00+0300`, `15:30:00+03:00`,
-- direct unit tests for `isDigitString`, `parseTimezone`,
-  `parseTimezoneWithColon`,
-- Scan / Value for `TimeOnly`,
-- clarify the semantic gap between `NullTime` and the new
-  `NullLocalDateTime` (see `IMPROVE-PLAN.md` M2).
+### 2.6. `types/null_uuid.go` ✅
+Done. Constructors, `NullUuidFromString` (incl. `null`/`NIL`/empty),
+`IsEmpty`, `ToString`, `Scan` (string / `[]byte` / nil / invalid),
+`MarshalJSON`, `UnmarshalJSON` (canonical, `null`, garbage).
 
-### 2.10. `types/emptiable.go`, `types_utils.go`, `string_able.go`
-- `IsEmpty` for every library type (both value and pointer),
-- `ToString` for every type plus the default branch,
-- `MaxDateTime`, `MinDateTime`,
-- `AssembleDateTime` with `nil` location and with a passed-in one,
-- `AssembleDateTimeTZ` — correct zone and invalid zone string,
-- `AssembleNullDateTimeTZ` — all four valid/invalid combinations for date
-  and time.
+Still open: braced (`{xxxxxxxx-…}`) and upper-case input variants.
 
-### 2.11. `utils/json.go`
-Baseline exists. Extend with:
+### 2.7. `types/null_date.go` ✅
+Done. Covers constructors, `FromString` (ISO + `dd.MM.yyyy`),
+`IsEmpty`, `ToString`, `Value`, `Scan` (time.Time, nil),
+`MarshalJSON`, `UnmarshalJSON` (incl. `null` and garbage).
+`ParseDateFromString` is covered for both supported formats and the error
+path.
+
+Still open:
+- explicit invalid-calendar inputs (`2023-13-01`, `31.02.2023`,
+  `0000-00-00`, `2023/01/02`),
+- `DateToString` across non-UTC time zones.
+
+### 2.8. `types/{offset,null_offset}_datetime.go` ✅
+Done (under the new naming `OffsetDateTime` / `NullOffsetDateTime`):
+- `T`-separator parsing and JSON round-trip with TZ,
+- UTC marshalling emits `Z`,
+- not-null rejects JSON `null` and empty string,
+- `Value()` / `Scan()` (incl. NULL-rejection on the not-null type and
+  NULL → invalid on the nullable),
+- `Before` / `After` on both types (nullable form returns false when
+  invalid),
+- `ToString`,
+- `DateTimeToString` wrapper.
+
+Still open:
+- explicit space-separator parsing (`2023-05-20 15:30:45+03:00`),
+- fractional-seconds round-trip (`2023-05-20T15:30:45.123Z`),
+- Scan from `string` / `[]byte` (currently driver-side only).
+
+### 2.9. `types/{offset,null_offset}_time.go` ✅
+Done (under the new naming `OffsetTime` / `NullOffsetTime`):
+- format round-trip with TZ (`+03:00`) and UTC (`Z`),
+- `String()` / `ToString()` produce identical output,
+- `Value`, `Scan` (time.Time, string, []byte, unsupported, invalid string),
+- `MarshalJSON` / `UnmarshalJSON` (null rejected on not-null; null → invalid
+  on nullable),
+- `IsEmpty` on `NullOffsetTime`.
+- `isDigitString`, `hasOffsetSuffix`, `ParseTimezoneExtended`
+  (no-suffix / colon / no-colon forms) covered in `types_utils_test.go`.
+
+Still open:
+- direct tests for `parseTimezone` and `parseTimezoneWithColon` error paths
+  (only happy paths are exercised through `ParseTimezoneExtended`),
+- explicit `HH:MM:SS.ms` fractional-seconds round-trip.
+
+### 2.10. `types/emptiable.go`, `types_utils.go`, `string_able.go` ✅
+Done. `IsEmpty` and `ToString` are exercised on every library type (both
+value and pointer kinds), incl. the `nil` and unknown-type fallbacks; the
+`stdlib sql.Null*` branch is covered. `MaxDateTime` / `MinDateTime`,
+`AssembleDateTime` (with and without explicit location) and
+`AssembleNullDateTimeTZ` (all four valid/invalid combinations) are tested.
+
+Still open:
+- `AssembleDateTimeTZ` with a malformed-zone error (the parser is lenient
+  and currently swallows most malformed inputs into `time.Local`).
+
+### 2.11. `utils/json.go` ⚠️
+Baseline exists; coverage at 96.3%. Still open:
 - `LoadObjectFromJson` with a generic type that contains
   `NullString`/`NullDate` — confirm round-trip preservation,
 - `LoadCollectionFromJsonFile` — empty file, non-array input (error),
 - `ToJson` — once the API returns an error (see `IMPROVE-PLAN.md` M8),
   verify the returned error; until then, assert `""` on failure.
 
-### 2.12. `dto/data.go`
-Baseline exists. Extend with:
+### 2.12. `dto/data.go` ⚠️
+Baseline exists; coverage at 100%. Still open:
 - JSON round-trip for `StdDataPackage[T]` using library types
   (`StdDataPackage[UserDTO]`, where `UserDTO.Birthday types.NullDate`).
 
@@ -141,6 +172,11 @@ Each new type (`Date`, `Time`, `DateTime`, `LocalDateTime`,
 ## 4. Integration tests
 
 ### 4.1. SQL round-trip (`types/integration_sql_test.go`)
+
+In-process transition tests live in `types/scan_reset_test.go` and assert
+that every nullable `Scan` resets cleanly from a previously-valid state when
+the next row is NULL. The sqlmock suite below is still open and exercises a
+realistic driver path.
 
 Use `github.com/DATA-DOG/go-sqlmock`:
 

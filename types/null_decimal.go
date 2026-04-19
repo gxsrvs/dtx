@@ -3,7 +3,6 @@ package types
 import (
 	"database/sql"
 	"encoding/json"
-	"reflect"
 	"strings"
 
 	"github.com/shopspring/decimal"
@@ -67,13 +66,11 @@ func (thisVal *NullDecimal) Scan(value interface{}) error {
 	if err := s.Scan(value); err != nil {
 		return err
 	}
-
-	if reflect.TypeOf(value) == nil {
+	if !s.Valid {
 		*thisVal = NewNullDecimalEmpty()
-	} else {
-		*thisVal = NullDecimalFromString(&s.String)
+		return nil
 	}
-
+	*thisVal = NullDecimalFromString(&s.String)
 	return nil
 }
 

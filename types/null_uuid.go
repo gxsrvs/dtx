@@ -3,7 +3,6 @@ package types
 import (
 	"database/sql"
 	"encoding/json"
-	"reflect"
 	"strings"
 
 	"github.com/google/uuid"
@@ -60,13 +59,11 @@ func (thisVal *NullUuid) Scan(value interface{}) error {
 	if err := s.Scan(value); err != nil {
 		return err
 	}
-
-	if reflect.TypeOf(value) == nil {
+	if !s.Valid {
 		*thisVal = NewNullUuidEmpty()
-	} else {
-		*thisVal = NullUuidFromString(&s.String)
+		return nil
 	}
-
+	*thisVal = NullUuidFromString(&s.String)
 	return nil
 }
 

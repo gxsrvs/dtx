@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
-	"reflect"
 )
 
 type NullString struct {
@@ -67,14 +66,11 @@ func (thisVal *NullString) Scan(value interface{}) error {
 	if err := s.Scan(value); err != nil {
 		return err
 	}
-
-	// if nil then make Valid false
-	if reflect.TypeOf(value) == nil {
-		*thisVal = NullString{Val: s.String}
-	} else {
-		*thisVal = NullString{Val: s.String, Valid: true}
+	if !s.Valid {
+		*thisVal = NewNullStringEmpty()
+		return nil
 	}
-
+	*thisVal = NewNullString(s.String)
 	return nil
 }
 
