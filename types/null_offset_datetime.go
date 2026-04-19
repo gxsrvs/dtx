@@ -3,7 +3,6 @@ package types
 import (
 	"database/sql"
 	"database/sql/driver"
-	"encoding/json"
 	"strings"
 	"time"
 )
@@ -50,6 +49,13 @@ func (thisVal *NullOffsetDateTime) IsEmpty() bool {
 	return !thisVal.Valid
 }
 
+// IsZero reports whether the value is NULL (Valid == false). Mirroring
+// time.Time.IsZero, this also enables encoding/json's `omitzero` tag
+// (Go 1.24+) to elide invalid wrappers from marshalled output.
+func (thisVal NullOffsetDateTime) IsZero() bool {
+	return !thisVal.Valid
+}
+
 // ToString renders the value in the library's canonical offset
 // datetime form, or "" when NULL.
 func (thisVal NullOffsetDateTime) ToString() string {
@@ -85,12 +91,20 @@ func (thisVal *NullOffsetDateTime) Scan(value interface{}) error {
 }
 
 // MarshalJSON renders the value as a JSON string in canonical offset
-// datetime form, or null when empty.
+// datetime form, or null when empty. The valid path appends directly
+// into a single buffer via time.Time.AppendFormat, skipping the
+// intermediate string and reflection dispatch that
+// json.Marshal(formatOffsetDateTime(...)) would perform.
 func (thisVal NullOffsetDateTime) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
 		return nullJson, nil
 	}
-	return json.Marshal(formatOffsetDateTime(thisVal.Val))
+	// "2006-01-02T15:04:05.999999999Z07:00" is at most 35 bytes plus quotes.
+	buf := make([]byte, 0, 40)
+	buf = append(buf, '"')
+	buf = thisVal.Val.AppendFormat(buf, offsetDateTimeFormat)
+	buf = append(buf, '"')
+	return buf, nil
 }
 
 // UnmarshalJSON parses a JSON string containing an offset datetime, or

@@ -3,7 +3,6 @@ package types
 import (
 	"database/sql"
 	"database/sql/driver"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -62,6 +61,15 @@ func (thisVal *NullInt16) IsEmpty() bool {
 	return !thisVal.Valid
 }
 
+// IsZero reports whether the value is NULL (Valid == false). Mirroring
+// time.Time.IsZero, this also enables encoding/json's `omitzero` tag
+// (Go 1.24+) to elide invalid wrappers from marshalled output.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (thisVal NullInt16) IsZero() bool {
+	return !thisVal.Valid
+}
+
 // ToString renders the value in decimal form, or "" when NULL.
 //
 //goland:noinspection GoMixedReceiverTypes
@@ -102,13 +110,17 @@ func (thisVal *NullInt16) Scan(value interface{}) error {
 }
 
 // MarshalJSON renders the value as a JSON number, or null when empty.
+// The valid path uses strconv.AppendInt directly to skip the reflection
+// dispatch and intermediate buffer allocation that json.Marshal does
+// for primitive numeric types.
 //
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullInt16) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
 		return nullJson, nil
 	}
-	return json.Marshal(thisVal.Val)
+	// 8 bytes covers the maximum int16 width including a leading sign.
+	return strconv.AppendInt(make([]byte, 0, 8), int64(thisVal.Val), 10), nil
 }
 
 // UnmarshalJSON parses a JSON number or the token null. Any other input

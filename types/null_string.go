@@ -48,6 +48,15 @@ func (thisVal *NullString) IsEmpty() bool {
 	return !thisVal.Valid
 }
 
+// IsZero reports whether the value is NULL (Valid == false). Mirroring
+// time.Time.IsZero, this also enables encoding/json's `omitzero` tag
+// (Go 1.24+) to elide invalid wrappers from marshalled output.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (thisVal NullString) IsZero() bool {
+	return !thisVal.Valid
+}
+
 // GetNullString returns the underlying string of an sql.NullString, or ""
 // when the value is NULL. Mirrors NSFromString on the read side.
 //

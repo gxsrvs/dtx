@@ -1,5 +1,11 @@
 # gxsrvs/dtx types library
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/gxsrvs/dtx.svg)](https://pkg.go.dev/github.com/gxsrvs/dtx)
+[![Go Report Card](https://goreportcard.com/badge/github.com/gxsrvs/dtx)](https://goreportcard.com/report/github.com/gxsrvs/dtx)
+[![CI](https://github.com/gxsrvs/dtx/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/gxsrvs/dtx/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/gxsrvs/dtx/branch/master/graph/badge.svg)](https://codecov.io/gh/gxsrvs/dtx)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A Go library providing nullable type wrappers for database operations with JSON marshaling/unmarshaling support.
 
 ## Installation
@@ -85,12 +91,37 @@ occasionally rounded for readability. The milestones referenced:
 
 ### Other nullable wrappers
 
-- `NullString` — nullable string
-- `NullBool` — nullable boolean
-- `NullInt16`, `NullInt32`, `NullInt64` — nullable integers
-- `NullFloat` — nullable float
-- `NullDecimal` — nullable arbitrary-precision decimal (`shopspring/decimal`)
-- `NullUuid` — nullable UUID (`google/uuid`)
+Beyond the date/time family, the library ships nullable wrappers over
+Go primitives and a couple of value types from third-party packages
+(`google/uuid`, `shopspring/decimal`). All wrappers share the same
+conventions:
+
+- a `Val` field holding the underlying value, plus a `Valid` flag;
+- `Scan` delegates to the matching `sql.Null*` (or `sql.NullString`
+  for text-encoded values), so a SQL `NULL` reliably yields
+  `Valid == false`;
+- `Value` returns `(nil, nil)` when invalid;
+- `MarshalJSON` emits the JSON token `null` when invalid;
+- `UnmarshalJSON` accepts both `null` and an empty input as NULL;
+- `ToString` returns `""` when invalid;
+- `IsEmpty()` is shorthand for `!Valid`;
+- `New<T>(v)` constructs a valid wrapper, `New<T>Empty()` an invalid
+  one;
+- `<T>FromString(*string)` (where applicable) parses the underlying
+  type from a `*string`, treating `nil`, `""`, and the case-
+  insensitive tokens `"null"` / `"nil"` as NULL — a parse error also
+  collapses to NULL rather than bubbling up.
+
+| Type          | Underlying Go value                       | Valid JSON shape                            | Valid `ToString`                              | `Scan` source                       | Type-specific notes |
+| ------------- | ----------------------------------------- | ------------------------------------------- | --------------------------------------------- | ----------------------------------- | ------------------- |
+| `NullString`  | `string`                                  | JSON string                                 | the underlying string                         | `sql.NullString`                    | A valid empty string `""` is preserved as **valid** (`Valid == true`). `ToString` cannot tell a valid `""` from NULL — read the `Valid` field to disambiguate. The helper `NSFromString(s)` returns an `sql.NullString` that treats `""` as NULL, when you need that flavour at the `database/sql` boundary. |
+| `NullBool`    | `bool`                                    | `true` / `false`                            | `"true"` / `"false"` (`fmt %t`)               | `sql.NullBool`                      | `UnmarshalJSON` accepts both the JSON literals `true` / `false` and the same tokens wrapped in quotes (`"true"` / `"false"`). |
+| `NullInt16`   | `int16`                                   | JSON number                                 | decimal form (`fmt %d`)                       | `sql.NullInt16`                     | `Value` widens to `int64` per the `database/sql` contract. `UnmarshalJSON` accepts JSON numbers and number-strings. |
+| `NullInt32`   | `int32`                                   | JSON number                                 | decimal form (`fmt %d`)                       | `sql.NullInt32`                     | Same widening + parsing rules as `NullInt16`. |
+| `NullInt64`   | `int64`                                   | JSON number                                 | decimal form (`fmt %d`)                       | `sql.NullInt64`                     | Same parsing rules as `NullInt16`. |
+| `NullFloat`   | `float64`                                 | JSON number                                 | `fmt %f` (six fractional digits)              | `sql.NullFloat64`                   | If exact decimal serialisation matters (money, ledger entries), prefer `NullDecimal` — `float64` is binary and cannot represent `0.1` exactly. |
+| `NullDecimal` | `decimal.Decimal` (`shopspring/decimal`)  | JSON number (the form `decimal.Decimal` emits) | `decimal.Decimal.String()` — no trailing zeros | `sql.NullString` (text from the driver) | The decimal crosses the driver boundary as text to preserve precision. The helper `MulNullDecimals(a, b)` multiplies two `NullDecimal`s and returns NULL if either operand is NULL. |
+| `NullUuid`    | `uuid.UUID` (`google/uuid`)               | JSON string in canonical `8-4-4-4-12` hex form | canonical `8-4-4-4-12` hex form               | `sql.NullString` (text from the driver) | Parsed via `uuid.Parse`, which accepts the canonical form, the bracketed `{…}` form, and the URN `urn:uuid:…` form. |
 
 ## Usage
 
@@ -197,6 +228,51 @@ otherwise).
 
 `Local*` types accept the same shapes but reject any timezone designator
 on input and never emit one on output.
+
+## Performance
+
+The `Null*` wrappers carry a small overhead compared to plain
+`*T` pointer fields: an extra `bool` per field, more allocations on the
+JSON marshal path, and a denser struct layout. The `bench/` package
+quantifies this end-to-end on a representative `Client` DTO (six
+nullable fields across two structs) and compares the two styles head
+to head:
+
+| Op / profile         |  Null (ns) |  Ptr (ns) |  Null (B/op) | Ptr (B/op) |
+| -------------------- | ---------: | --------: | -----------: | ---------: |
+| Marshal / AllValid   |       3593 |      2895 |          592 |        480 |
+| Marshal / Mixed      |       1005 |       641 |          248 |        160 |
+| Marshal / AllNull    |        377 |       302 |          128 |         64 |
+| Unmarshal / AllValid |       8028 |      5300 |         1072 |        584 |
+| Unmarshal / Mixed    |       3187 |      2761 |          632 |        424 |
+| Unmarshal / AllNull  |        705 |       678 |          328 |        264 |
+
+(Linux / Ryzen 7 8845H, three runs each; reproduce with
+`go test ./bench/ -bench=BenchmarkClient -benchmem -run=^$`.)
+
+The gap is real but modest — well under a microsecond per field on
+typical DTOs. In return, defining the DTO becomes much more pleasant:
+
+- **One nil-state instead of two.** A `*string` can be `nil` *or* point
+  to `""`; a `NullString` has a single `Valid` flag, so call sites do
+  not need to guess which sentinel a producer chose.
+- **SQL `Scan` works out of the box.** A bare `*time.Time` does not
+  implement `sql.Scanner`, so you would have to write a wrapper anyway —
+  the `Null*` types delegate to the matching `sql.Null*` and honour
+  the driver's NULL signalling reliably.
+- **Compact, predictable JSON.** `NullDate` writes `"1961-04-12"` rather
+  than RFC 3339 `"1961-04-12T00:00:00Z"`; the `Local*` and `Offset*`
+  pairs each pick one canonical shape. On the `AllValid` profile this
+  saves 30 bytes per record (248 B vs 278 B for `*time.Time`).
+- **Symmetric `Marshal` / `Unmarshal` / `Scan` / `Value` semantics.**
+  `null`, `""`, `"null"`, and SQL `NULL` collapse to the same
+  invalid-wrapper state across every type, so DTO-level handling does
+  not need special cases per field.
+
+If the per-record cost matters in a hot path, mix and match: the
+library does not force a choice. Pointer fields and `Null*` fields
+coexist in the same struct, so leave the rare bottleneck as `*T` and
+keep `Null*` for the rest of the DTO.
 
 ## Dependencies
 

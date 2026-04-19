@@ -3,7 +3,6 @@ package types
 import (
 	"database/sql"
 	"database/sql/driver"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -49,6 +48,15 @@ func (thisVal *NullBool) IsEmpty() bool {
 	return !thisVal.Valid
 }
 
+// IsZero reports whether the value is NULL (Valid == false). Mirroring
+// time.Time.IsZero, this also enables encoding/json's `omitzero` tag
+// (Go 1.24+) to elide invalid wrappers from marshalled output.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (thisVal NullBool) IsZero() bool {
+	return !thisVal.Valid
+}
+
 // ToString renders the value as "true"/"false", or "" when NULL.
 //
 //goland:noinspection GoMixedReceiverTypes
@@ -88,13 +96,19 @@ func (thisVal *NullBool) Scan(value interface{}) error {
 }
 
 // MarshalJSON renders the value as a JSON boolean, or null when empty.
+// The valid path returns a shared literal slice ("true"/"false") to
+// skip the reflection dispatch and allocation that json.Marshal does
+// for the primitive bool type.
 //
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullBool) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
 		return nullJson, nil
 	}
-	return json.Marshal(thisVal.Val)
+	if thisVal.Val {
+		return jsonTrue, nil
+	}
+	return jsonFalse, nil
 }
 
 // UnmarshalJSON parses a JSON boolean or the token null. Any other input

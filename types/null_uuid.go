@@ -39,6 +39,15 @@ func (thisVal *NullUuid) IsEmpty() bool {
 	return !thisVal.Valid
 }
 
+// IsZero reports whether the value is NULL (Valid == false). Mirroring
+// time.Time.IsZero, this also enables encoding/json's `omitzero` tag
+// (Go 1.24+) to elide invalid wrappers from marshalled output.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (thisVal NullUuid) IsZero() bool {
+	return !thisVal.Valid
+}
+
 // ToString renders the UUID in canonical 8-4-4-4-12 hex form, or ""
 // when NULL.
 func (thisVal *NullUuid) ToString() string {

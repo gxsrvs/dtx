@@ -3,7 +3,6 @@ package types
 import (
 	"database/sql"
 	"database/sql/driver"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -49,6 +48,15 @@ func (thisVal *NullFloat) IsEmpty() bool {
 	return !thisVal.Valid
 }
 
+// IsZero reports whether the value is NULL (Valid == false). Mirroring
+// time.Time.IsZero, this also enables encoding/json's `omitzero` tag
+// (Go 1.24+) to elide invalid wrappers from marshalled output.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (thisVal NullFloat) IsZero() bool {
+	return !thisVal.Valid
+}
+
 // ToString renders the value via fmt's %f verb, or "" when NULL.
 //
 //goland:noinspection GoMixedReceiverTypes
@@ -88,13 +96,19 @@ func (thisVal *NullFloat) Scan(value interface{}) error {
 }
 
 // MarshalJSON renders the value as a JSON number, or null when empty.
+// The valid path uses strconv.AppendFloat directly to skip the
+// reflection dispatch and intermediate buffer allocation that
+// json.Marshal does for primitive numeric types. The 'g' verb mirrors
+// encoding/json's own format for float64.
 //
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullFloat) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
 		return nullJson, nil
 	}
-	return json.Marshal(thisVal.Val)
+	// 32 bytes is enough for any float64 in 'g' form including sign,
+	// decimal point, and exponent.
+	return strconv.AppendFloat(make([]byte, 0, 32), thisVal.Val, 'g', -1, 64), nil
 }
 
 // UnmarshalJSON parses a JSON number or the token null. Any other input

@@ -101,19 +101,19 @@ the per-type Scan tests.
 
 ---
 
-## M4. 🟡 Consistent `ToString()`
+## M4. ✅ Consistent `ToString()`
 
 Rules:
 
-- `Valid == false` → `""` across every type (today `NullFloat` returns
-  `"null"`),
+- `Valid == false` → `""` across every type,
 - for date/time types — the **same** format as `MarshalJSON`.
 
-Status: ✅ done for the date/time family (`NullOffsetTime` now shares
-`formatOffsetTime` with `MarshalJSON`).
+Done:
 
-Still 🟡: `null_float.go` returns `"null"` for invalid values where every
-other type returns `""`.
+- date/time family shares its formatters with `MarshalJSON`
+  (e.g. `NullOffsetTime` routes through `formatOffsetTime`),
+- `NullFloat.ToString()` returns `""` for invalid values, aligning with
+  every other nullable wrapper (covered by `null_float_test.go`).
 
 ---
 
@@ -184,14 +184,36 @@ marshalling) explicitly.
 ## M9. 🟡 Add `LICENSE` + overhaul `README.md`
 
 `LICENSE` (MIT) and `THIRD_PARTY_LICENSES.md` are already in place. The
-remaining work is the README overhaul per `REVIEW.md` §6:
+remaining work is the README overhaul per `.ai/REVIEW.md` §7.
 
-- badges (`pkg.go.dev`, Go Report Card, CI status, coverage),
-- full documentation of **every** public type,
-- sections Installation / Quickstart / Usage / SQL / JSON / TZ / Testing,
-- semver policy,
-- contributing,
-- English as the sole language of the docs.
+Done:
+
+- ✅ all five badges in place (`pkg.go.dev`, Go Report Card, CI,
+  coverage, MIT license) — `README.md:3-7`. The MIT-license badge is
+  a static shields.io image and renders immediately; CI / coverage
+  badges will only render once M11 lands the workflow + Codecov
+  upload; `pkg.go.dev` and Go Report Card light up after the first
+  public push/tag,
+- ✅ Installation section,
+- ✅ Contributing section,
+- ✅ English as the sole language of the docs (explicit note in the
+  Contributing section),
+- ✅ full documentation of every public type — the date/time pairs
+  have a dedicated input/output grammar table; the simple-type family
+  (`NullString`, `NullBool`, `NullInt{16,32,64}`, `NullFloat`,
+  `NullDecimal`, `NullUuid`) now has a parallel table covering
+  underlying Go value, JSON shape, `ToString` form, `Scan` source, and
+  per-type idiosyncrasies, plus a paragraph stating the conventions
+  shared across the family (`README.md` "Other nullable wrappers"
+  section).
+
+Still open:
+
+- 🟡 dedicated sections Quickstart / SQL / JSON / TZ / Testing — at
+  the moment Usage merges Quickstart + SQL + JSON examples, and there
+  are no standalone JSON / TZ / Testing sections,
+- 🟡 semver policy — `.ai/REVIEW.md` §6 already drafts it; needs to be
+  distilled into a README section.
 
 ---
 

@@ -39,6 +39,15 @@ func (thisVal *NullDecimal) IsEmpty() bool {
 	return !thisVal.Valid
 }
 
+// IsZero reports whether the value is NULL (Valid == false). Mirroring
+// time.Time.IsZero, this also enables encoding/json's `omitzero` tag
+// (Go 1.24+) to elide invalid wrappers from marshalled output.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (thisVal NullDecimal) IsZero() bool {
+	return !thisVal.Valid
+}
+
 // ToString renders the decimal via decimal.Decimal.String (no trailing
 // zeros), or "" when NULL.
 func (thisVal *NullDecimal) ToString() string {

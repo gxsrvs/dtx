@@ -2,8 +2,8 @@ package types
 
 import (
 	"database/sql/driver"
-	"encoding/json"
 	"strings"
+	"time"
 )
 
 // NullLocalTime is the nullable counterpart of LocalTime. It shares the
@@ -47,6 +47,13 @@ func (thisVal *NullLocalTime) IsEmpty() bool {
 	return !thisVal.Valid
 }
 
+// IsZero reports whether the value is NULL (Valid == false). Mirroring
+// time.Time.IsZero, this also enables encoding/json's `omitzero` tag
+// (Go 1.24+) to elide invalid wrappers from marshalled output.
+func (thisVal NullLocalTime) IsZero() bool {
+	return !thisVal.Valid
+}
+
 // ToString renders the value in the library's canonical local time
 // form, or "" when NULL.
 func (thisVal *NullLocalTime) ToString() string {
@@ -83,12 +90,22 @@ func (thisVal *NullLocalTime) Scan(value interface{}) error {
 }
 
 // MarshalJSON renders the value as a JSON string in canonical local
-// time form, or null when empty.
+// time form, or null when empty. The valid path appends directly into
+// a single buffer via time.Time.AppendFormat, skipping the
+// intermediate string and reflection dispatch that
+// json.Marshal(formatLocalTime(...)) would perform.
 func (thisVal NullLocalTime) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
 		return nullJson, nil
 	}
-	return json.Marshal(formatLocalTime(thisVal.Val))
+	v := thisVal.Val
+	t := time.Date(0, 1, 1, v.Hour, v.Minute, v.Second, v.Nanosec, time.UTC)
+	// "15:04:05.999999999" is at most 18 bytes plus quotes.
+	buf := make([]byte, 0, 24)
+	buf = append(buf, '"')
+	buf = t.AppendFormat(buf, "15:04:05.999999999")
+	buf = append(buf, '"')
+	return buf, nil
 }
 
 // UnmarshalJSON parses a JSON string containing a local time, or the

@@ -3,7 +3,6 @@ package types
 import (
 	"database/sql"
 	"database/sql/driver"
-	"encoding/json"
 	"strings"
 	"time"
 )
@@ -68,6 +67,15 @@ func (thisVal *NullDate) IsEmpty() bool {
 	return !thisVal.Valid
 }
 
+// IsZero reports whether the value is NULL (Valid == false). Mirroring
+// time.Time.IsZero, this also enables encoding/json's `omitzero` tag
+// (Go 1.24+) to elide invalid wrappers from marshalled output.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (thisVal NullDate) IsZero() bool {
+	return !thisVal.Valid
+}
+
 // ToString renders the date in ISO 8601 form, or "" when NULL.
 //
 //goland:noinspection GoMixedReceiverTypes
@@ -108,14 +116,21 @@ func (thisVal *NullDate) Scan(value interface{}) error {
 }
 
 // MarshalJSON renders the date as a JSON string in ISO 8601 form, or
-// null when empty.
+// null when empty. The valid path writes directly to a single buffer
+// via time.Time.AppendFormat, skipping the intermediate string and
+// reflection dispatch that json.Marshal would perform.
 //
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullDate) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
 		return nullJson, nil
 	}
-	return json.Marshal(formatDate(thisVal.Val))
+	// "2006-01-02" is 10 bytes, plus the two surrounding quotes.
+	buf := make([]byte, 0, len(time.DateOnly)+2)
+	buf = append(buf, '"')
+	buf = thisVal.Val.AppendFormat(buf, time.DateOnly)
+	buf = append(buf, '"')
+	return buf, nil
 }
 
 // UnmarshalJSON parses a JSON string using the accepted date formats
