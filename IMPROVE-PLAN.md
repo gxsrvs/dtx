@@ -234,16 +234,30 @@ counterpart.
 
 ## M11. 🟡 CI/CD
 
-`.github/workflows/ci.yml`:
+Done:
 
-- test matrix (Go 1.22..1.26),
-- `golangci-lint` (gofmt, govet, staticcheck, errcheck, unused, goimports,
-  revive),
-- Codecov upload,
-- release workflow (goreleaser or `release-please`).
+- ✅ `.github/workflows/ci.yml` with two jobs: **lint** (golangci-lint
+  v2, latest) and **test** (`go build ./...` + `go test -race
+  -covermode=atomic -coverprofile=coverage.out ./...` + Codecov
+  upload via `codecov/codecov-action@v5`),
+- ✅ `.golangci.yml` (v2 schema) enabling `errcheck`, `govet`,
+  `staticcheck`, `unused`, `revive` as linters and `gofmt`,
+  `goimports` as formatters,
+- ✅ `.gitignore` extended with `coverage.out` / `coverage.html`,
+- ✅ Go version pinned to **1.26 only** — the minimum supported
+  version, no matrix. We deliberately use 1.26-only features
+  (`new(expr)` shorthand) and the `b.Loop()` benchmark idiom from
+  1.24, so dropping the floor would force a refactor with no real
+  upside for a fresh public library.
 
-Adjust `go.mod` — drop `go 1.26.1` to the lowest supported minor
-(suggest `go 1.22`).
+Still open:
+
+- 🟡 Codecov badge will only render once the `gxsrvs/dtx` repo is
+  added on `codecov.io` (a one-time web-UI step) and the first CI
+  run uploads coverage. No token is needed for public repos.
+- 🟡 Release workflow (goreleaser or `release-please`) — deferred to
+  M12 alongside the broader versioning / `CHANGELOG.md` work, since
+  the two are tightly coupled.
 
 ---
 
@@ -291,5 +305,8 @@ Driven by real-world usage:
 Sizes: S ≈ up to one day, M ≈ two–three days, L ≈ up to a week.
 
 **Minimum work to reach the public release:** M1..M3 + M9 + M11, and ideally
-M10. M1..M3 (and M5, M7, M10) are now done — the remaining release-blocking
-work is M9 (README overhaul) and M11 (CI pipeline).
+M10. M1..M3 (and M5, M7, M10) are now done. M11's CI pipeline (lint + test +
+coverage) is wired up and stays 🟡 only because the Codecov web-UI sign-up and
+the release workflow are still outstanding. Remaining release-blocking work is
+the rest of M9 (Quickstart / SQL / JSON / TZ / Testing sections + semver
+policy distillation).

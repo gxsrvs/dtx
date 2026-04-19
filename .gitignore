@@ -5,3 +5,5 @@
 /.ai/
 /.claude/
 CLAUDE.md
+coverage.out
+coverage.html
