@@ -9,7 +9,7 @@ Integration scenarios that require `database/sql` semantics use
 `github.com/DATA-DOG/go-sqlmock`.
 
 **Current status:** unit-test coverage is at **95.0%** of statements in
-`types/`, **96.3%** in `utils/`, **100%** in `dto/`. Phases T1, T3, T4, T5
+`types/`, **96.3%** in `utils/`. Phases T1, T3, T4, T5
 and T6 are done; T2 (sqlmock integration), T7 (fuzzing), T8 (benchmarks)
 and T9 (CI) are still open.
 
@@ -146,13 +146,8 @@ Baseline exists; coverage at 96.3%. Still open:
 - `LoadObjectFromJson` with a generic type that contains
   `NullString`/`NullDate` — confirm round-trip preservation,
 - `LoadCollectionFromJsonFile` — empty file, non-array input (error),
-- `ToJson` — once the API returns an error (see `IMPROVE-PLAN.md` M8),
-  verify the returned error; until then, assert `""` on failure.
-
-### 2.12. `dto/data.go` ⚠️
-Baseline exists; coverage at 100%. Still open:
-- JSON round-trip for `StdDataPackage[T]` using library types
-  (`StdDataPackage[UserDTO]`, where `UserDTO.Birthday types.NullDate`).
+- `ToJson` — error path is covered (channel marshalling); consider adding
+  a nested-struct success case.
 
 ## 3. New types introduced by `IMPROVE-PLAN.md`
 
@@ -198,8 +193,9 @@ Cover: NULL in every column, valid values, and unsupported source type.
 
 ### 4.2. JSON round-trip through a realistic DTO
 
-In `dto/`, add a struct that exercises **every** nullable type alongside
-regular `time.Time`, `uuid.UUID`, `decimal.Decimal`, and verify:
+Add an integration-style test struct that exercises **every** nullable
+type alongside regular `time.Time`, `uuid.UUID`, `decimal.Decimal`, and
+verify:
 
 ```
 struct → json.Marshal → json.Unmarshal → DeepEqual

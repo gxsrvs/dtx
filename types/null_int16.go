@@ -9,19 +9,26 @@ import (
 	"strings"
 )
 
+// NullInt16 is a nullable int16. Valid reports whether Val holds a
+// meaningful value (true) or a SQL/JSON NULL (false).
 type NullInt16 struct {
 	Val   int16
-	Valid bool // Valid is true if Val is not NULL
+	Valid bool
 }
 
+// NewNullInt16 constructs a valid NullInt16 wrapping value.
 func NewNullInt16(value int16) NullInt16 {
 	return NullInt16{Val: value, Valid: true}
 }
 
+// NewNullInt16Empty returns an invalid (NULL) NullInt16.
 func NewNullInt16Empty() NullInt16 {
 	return NullInt16{Valid: false}
 }
 
+// NullInt16FromString parses an int16 from the string pointer. A nil
+// pointer, an empty string, the tokens "null"/"nil" (case-insensitive),
+// or a parse error all produce an invalid NullInt16.
 func NullInt16FromString(strValue *string) NullInt16 {
 	if strValue == nil || *strValue == "" ||
 		strings.ToLower(*strValue) == "null" ||
@@ -35,7 +42,8 @@ func NullInt16FromString(strValue *string) NullInt16 {
 	return NewNullInt16(int16(result))
 }
 
-//goland:noinspection GoUnusedExportedFunction
+// NullInt16FromNullString parses an int16 from a NullString. An invalid
+// or empty NullString, or a parse error, produce an invalid NullInt16.
 func NullInt16FromNullString(str NullString) NullInt16 {
 	if !str.Valid || str.Val == "" {
 		return NewNullInt16Empty()
@@ -47,11 +55,15 @@ func NullInt16FromNullString(str NullString) NullInt16 {
 	return NewNullInt16(int16(result))
 }
 
+// IsEmpty reports whether the value is NULL (Valid == false).
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullInt16) IsEmpty() bool {
 	return !thisVal.Valid
 }
 
+// ToString renders the value in decimal form, or "" when NULL.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullInt16) ToString() string {
 	if !thisVal.Valid {
@@ -60,6 +72,10 @@ func (thisVal *NullInt16) ToString() string {
 	return fmt.Sprintf("%d", thisVal.Val)
 }
 
+// Value implements the database/sql/driver.Valuer interface. A NULL value
+// is emitted as (nil, nil); the valid case is widened to int64 per the
+// database/sql contract.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullInt16) Value() (driver.Value, error) {
 	if !thisVal.Valid {
@@ -68,6 +84,9 @@ func (thisVal NullInt16) Value() (driver.Value, error) {
 	return int64(thisVal.Val), nil
 }
 
+// Scan implements the database/sql.Scanner interface, delegating to
+// sql.NullInt16 so that the driver's NULL signalling is honoured.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullInt16) Scan(value interface{}) error {
 	var s sql.NullInt16
@@ -82,6 +101,8 @@ func (thisVal *NullInt16) Scan(value interface{}) error {
 	return nil
 }
 
+// MarshalJSON renders the value as a JSON number, or null when empty.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullInt16) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
@@ -90,6 +111,9 @@ func (thisVal NullInt16) MarshalJSON() ([]byte, error) {
 	return json.Marshal(thisVal.Val)
 }
 
+// UnmarshalJSON parses a JSON number or the token null. Any other input
+// is treated as a parse error.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullInt16) UnmarshalJSON(data []byte) error {
 	sd := string(data)

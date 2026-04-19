@@ -61,10 +61,9 @@ func TestNullFloat_ToString(t *testing.T) {
 	if got := v.ToString(); got != "1.500000" {
 		t.Errorf("Expected '1.500000', got %q", got)
 	}
-	// Documents the M4 inconsistency: empty NullFloat returns "null", not "".
 	empty := NewNullFloatEmpty()
-	if got := empty.ToString(); got != "null" {
-		t.Errorf("Expected 'null' (M4 pending), got %q", got)
+	if got := empty.ToString(); got != "" {
+		t.Errorf("Expected empty string, got %q", got)
 	}
 }
 

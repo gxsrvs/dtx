@@ -39,6 +39,7 @@ func hasOffsetSuffix(s string) bool {
 	return false
 }
 
+// MaxDateTime returns the later of dt1 and dt2. Ties return dt2.
 func MaxDateTime(dt1, dt2 time.Time) time.Time {
 	if dt1.After(dt2) {
 		return dt1
@@ -46,7 +47,7 @@ func MaxDateTime(dt1, dt2 time.Time) time.Time {
 	return dt2
 }
 
-//goland:noinspection GoUnusedExportedFunction
+// MinDateTime returns the earlier of dt1 and dt2. Ties return dt2.
 func MinDateTime(dt1, dt2 time.Time) time.Time {
 	if dt1.Before(dt2) {
 		return dt1
@@ -54,6 +55,10 @@ func MinDateTime(dt1, dt2 time.Time) time.Time {
 	return dt2
 }
 
+// AssembleDateTime combines the calendar date from dateValue with the
+// wall-clock components from timeValue. If location is non-nil it is
+// used as the resulting time.Location, otherwise timeValue's location
+// is kept.
 func AssembleDateTime(
 	dateValue *time.Time,
 	timeValue *time.Time,
@@ -77,6 +82,11 @@ func AssembleDateTime(
 	return &result
 }
 
+// AssembleDateTimeTZ combines dateValue and timeValue and resolves the
+// resulting location from the textual timeZone using
+// ParseTimezoneExtended (IANA names, "Z", and "+HH:MM" / "+HHMM"
+// offsets are all accepted). On a zone parse error the original
+// dateValue is returned alongside the error.
 func AssembleDateTimeTZ(
 	dateValue *time.Time,
 	timeValue *time.Time,
@@ -89,6 +99,11 @@ func AssembleDateTimeTZ(
 	return AssembleDateTime(dateValue, timeValue, loc), nil
 }
 
+// AssembleNullDateTimeTZ is the NULL-aware variant of
+// AssembleDateTimeTZ. A NULL date or time is replaced by the
+// corresponding default (defaultDate / defaultTime); the returned
+// pointer reflects the assembled instant in the zone decoded from
+// timeZone.
 func AssembleNullDateTimeTZ(
 	dateValue *NullDate,
 	defaultDate *time.Time,

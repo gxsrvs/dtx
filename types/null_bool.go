@@ -9,20 +9,26 @@ import (
 	"strings"
 )
 
+// NullBool is a nullable boolean. Valid reports whether Val holds a
+// meaningful value (true) or a SQL/JSON NULL (false).
 type NullBool struct {
 	Val   bool
-	Valid bool // Valid is true if Val is not NULL
+	Valid bool
 }
 
+// NewNullBool constructs a valid NullBool wrapping value.
 func NewNullBool(value bool) NullBool {
 	return NullBool{Val: value, Valid: true}
 }
 
+// NewNullBoolEmpty returns an invalid (NULL) NullBool.
 func NewNullBoolEmpty() NullBool {
 	return NullBool{Valid: false}
 }
 
-//goland:noinspection GoUnusedExportedFunction
+// NullBoolFromString parses a bool from the string pointer. A nil pointer,
+// an empty string, the tokens "null"/"nil" (case-insensitive), or a parse
+// error all produce an invalid NullBool.
 func NullBoolFromString(strValue *string) NullBool {
 	if strValue == nil || *strValue == "" ||
 		strings.ToLower(*strValue) == "null" ||
@@ -36,11 +42,15 @@ func NullBoolFromString(strValue *string) NullBool {
 	return NewNullBool(result)
 }
 
+// IsEmpty reports whether the value is NULL (Valid == false).
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullBool) IsEmpty() bool {
 	return !thisVal.Valid
 }
 
+// ToString renders the value as "true"/"false", or "" when NULL.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullBool) ToString() string {
 	if !thisVal.Valid {
@@ -49,6 +59,9 @@ func (thisVal *NullBool) ToString() string {
 	return fmt.Sprintf("%t", thisVal.Val)
 }
 
+// Value implements the database/sql/driver.Valuer interface. A NULL value
+// is emitted as (nil, nil).
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullBool) Value() (driver.Value, error) {
 	if !thisVal.Valid {
@@ -57,6 +70,9 @@ func (thisVal NullBool) Value() (driver.Value, error) {
 	return thisVal.Val, nil
 }
 
+// Scan implements the database/sql.Scanner interface, delegating to
+// sql.NullBool so that the driver's NULL signalling is honoured.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullBool) Scan(value interface{}) error {
 	var s sql.NullBool
@@ -71,6 +87,8 @@ func (thisVal *NullBool) Scan(value interface{}) error {
 	return nil
 }
 
+// MarshalJSON renders the value as a JSON boolean, or null when empty.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullBool) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
@@ -79,6 +97,9 @@ func (thisVal NullBool) MarshalJSON() ([]byte, error) {
 	return json.Marshal(thisVal.Val)
 }
 
+// UnmarshalJSON parses a JSON boolean or the token null. Any other input
+// is treated as a parse error.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullBool) UnmarshalJSON(data []byte) error {
 	sd := string(data)

@@ -166,20 +166,18 @@ Adding a new type no longer requires edits to `emptiable.go` /
 
 ---
 
-## M8. 🟡 `utils.ToJson` should return an error
+## M8. ✅ `utils.ToJson` returns an error
 
-Current signature:
-
-```go
-func ToJson(entity interface{}) string
-```
-
-Swallowing the error is an anti-pattern for a public API. Replace with:
+Done. The signature now is:
 
 ```go
 func ToJson(entity interface{}) (string, error)
-// and, optionally, MustToJson(entity interface{}) string for test helpers
 ```
+
+`json.Marshal` failures are wrapped with `fmt.Errorf("failed to marshal
+interface to json: %w", err)` and returned to the caller instead of being
+logged and swallowed. `utils/json_test.go` covers the error path (channel
+marshalling) explicitly.
 
 ---
 
@@ -197,11 +195,18 @@ remaining work is the README overhaul per `REVIEW.md` §6:
 
 ---
 
-## M10. 🟡 godoc coverage
+## M10. ✅ godoc coverage
 
-Every public function / type / constant gets a `// Name ...` godoc
-comment. Add `// Package types provides nullable wrappers ...` in a new
-`types/doc.go`, and do the same in `dto/` and `utils/`.
+Done. Every exported type, function, method, and constant in `types/`
+and `utils/` now carries a godoc comment. Package-level overviews live
+in `types/doc.go` and `utils/doc.go`. The nullable families
+(`NullBool`, `NullInt{16,32,64}`, `NullFloat`, `NullString`,
+`NullDecimal`, `NullUuid`, `NullDate`, and the four `Null*Local*` /
+`Null*Offset*` datetime types) document their Scan/Value/Marshal
+semantics and the `""` / `null` conventions in one voice; the not-null
+`Date` / `LocalDateTime` / `LocalTime` / `OffsetDateTime` /
+`OffsetTime` types document their shared serializer with the nullable
+counterpart.
 
 ---
 
@@ -243,16 +248,6 @@ Driven by real-world usage:
 
 ---
 
-## M14. 🟢 `dto.DataPackage` evolution
-
-- Drop `DataObject = interface{}` — it contributes nothing. Keep
-  `DataPackage[T any]`.
-- Add standard envelopes for REST responses: `Result[T]`,
-  `PaginatedResult[T]` (with `Total`, `Limit`, `Offset`), `ErrorResponse`.
-- JSON round-trip tests with real nullable types.
-
----
-
 ## Roadmap
 
 | Milestone | Description                                                  | Priority | Size |
@@ -260,20 +255,19 @@ Driven by real-world usage:
 | M1        | Non-null Date/OffsetTime/OffsetDateTime + shared serializer  |    ✅    |  M   |
 | M2        | LocalDateTime/NullLocalDateTime + LocalTime/NullLocalTime    |    ✅    |  L   |
 | M3        | `Scan` fix (use `sql.Null*.Valid`) across every nullable     |    ✅    |  M   |
-| M4        | Consistent `ToString` — date/time done, `NullFloat` 🟡       |    🟡    |  S   |
+| M4        | Consistent `ToString` — all nullable wrappers return ""      |    ✅    |  S   |
 | M5        | Rename `Time*` / `DateTime*` → `Offset*` (breaking, pre-v1.0)|    ✅    |  S   |
 | M6        | Receivers + remove `//goland:noinspection` — new files done  |    🟡    |  S   |
 | M7        | Interface dispatch for `IsEmpty` / `ToString`                |    ✅    |  S   |
-| M8        | `utils.ToJson` returns an error                              |    🟡    |  S   |
+| M8        | `utils.ToJson` returns an error                              |    ✅    |  S   |
 | M9        | LICENSE + README                                             |    🟡    |  S   |
-| M10       | godoc across the public API                                  |    🟡    |  M   |
+| M10       | godoc across the public API                                  |    ✅    |  M   |
 | M11       | CI/CD + linter + coverage                                    |    🟡    |  M   |
 | M12       | Semver + CHANGELOG                                           |    🟢    |  S   |
 | M13       | API expansion (Equal / Compare / arithmetic)                 |    🟢    |  M   |
-| M14       | `dto` evolution (Result, PaginatedResult)                    |    🟢    |  M   |
 
 Sizes: S ≈ up to one day, M ≈ two–three days, L ≈ up to a week.
 
 **Minimum work to reach the public release:** M1..M3 + M9 + M11, and ideally
-M10. M1..M3 (and M5, M7) are now done — the remaining release-blocking work
-is M9 (README overhaul) and M11 (CI pipeline).
+M10. M1..M3 (and M5, M7, M10) are now done — the remaining release-blocking
+work is M9 (README overhaul) and M11 (CI pipeline).

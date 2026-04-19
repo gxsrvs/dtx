@@ -8,19 +8,29 @@ import (
 	"time"
 )
 
+// NullDate is a nullable calendar date (year/month/day with no
+// time-of-day or zone component). Valid reports whether Val holds a
+// meaningful value (true) or a SQL/JSON NULL (false).
 type NullDate struct {
 	Val   time.Time
-	Valid bool // Valid is true if Val is not NULL
+	Valid bool
 }
 
+// NewNullDate constructs a valid NullDate wrapping value.
 func NewNullDate(value time.Time) NullDate {
 	return NullDate{Val: value, Valid: true}
 }
 
+// NewNullDateEmpty returns an invalid (NULL) NullDate.
 func NewNullDateEmpty() NullDate {
 	return NullDate{Valid: false}
 }
 
+// NullDateFromString parses a date from the string pointer using the
+// library's accepted formats (ISO 8601 "2006-01-02" and the Russian
+// "dd.MM.yyyy"). A nil pointer, an empty string, the tokens
+// "null"/"nil" (case-insensitive), or a parse error all produce an
+// invalid NullDate.
 func NullDateFromString(strValue *string) NullDate {
 	if strValue == nil || *strValue == "" ||
 		strings.ToLower(*strValue) == "null" ||
@@ -34,8 +44,9 @@ func NullDateFromString(strValue *string) NullDate {
 	return NewNullDate(parsed)
 }
 
-// ParseDateFromString parses a calendar date from a string using the formats
-// supported by the library (ISO 8601 and dd.MM.yyyy).
+// ParseDateFromString parses a calendar date from a string using the
+// formats supported by the library (ISO 8601 and dd.MM.yyyy). The
+// returned pointer is never nil on success.
 func ParseDateFromString(strValue string) (*time.Time, error) {
 	parsed, err := parseDate(strValue)
 	if err != nil {
@@ -44,17 +55,21 @@ func ParseDateFromString(strValue string) (*time.Time, error) {
 	return &parsed, nil
 }
 
-// DateToString renders a calendar date in the library's canonical format
-// ("2006-01-02").
+// DateToString renders a calendar date in the library's canonical ISO
+// 8601 form ("2006-01-02").
 func DateToString(date time.Time) string {
 	return formatDate(date)
 }
 
+// IsEmpty reports whether the value is NULL (Valid == false).
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullDate) IsEmpty() bool {
 	return !thisVal.Valid
 }
 
+// ToString renders the date in ISO 8601 form, or "" when NULL.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullDate) ToString() string {
 	if !thisVal.Valid {
@@ -63,6 +78,10 @@ func (thisVal *NullDate) ToString() string {
 	return formatDate(thisVal.Val)
 }
 
+// Value implements the database/sql/driver.Valuer interface. A NULL
+// value is emitted as (nil, nil); the valid case is emitted as the
+// underlying time.Time (drivers then format it as DATE).
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullDate) Value() (driver.Value, error) {
 	if !thisVal.Valid {
@@ -71,6 +90,9 @@ func (thisVal NullDate) Value() (driver.Value, error) {
 	return thisVal.Val, nil
 }
 
+// Scan implements the database/sql.Scanner interface, delegating to
+// sql.NullTime so that the driver's NULL signalling is honoured.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullDate) Scan(value interface{}) error {
 	var s sql.NullTime
@@ -85,6 +107,9 @@ func (thisVal *NullDate) Scan(value interface{}) error {
 	return nil
 }
 
+// MarshalJSON renders the date as a JSON string in ISO 8601 form, or
+// null when empty.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullDate) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
@@ -93,6 +118,9 @@ func (thisVal NullDate) MarshalJSON() ([]byte, error) {
 	return json.Marshal(formatDate(thisVal.Val))
 }
 
+// UnmarshalJSON parses a JSON string using the accepted date formats
+// (ISO 8601, dd.MM.yyyy) or the token null.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullDate) UnmarshalJSON(data []byte) error {
 	sd := string(data)

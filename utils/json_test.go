@@ -113,8 +113,10 @@ func TestLoadCollectionFromJsonFile(t *testing.T) {
 func TestToJson(t *testing.T) {
 	obj := testObject{ID: 5, Name: "JSON"}
 	expected := `{"id":5,"name":"JSON"}`
-	result := ToJson(obj)
-
+	result, err := ToJson(obj)
+	if err != nil {
+		t.Fatalf("ToJson failed: %v", err)
+	}
 	if result != expected {
 		t.Errorf("got %s, want %s", result, expected)
 	}
@@ -122,15 +124,21 @@ func TestToJson(t *testing.T) {
 	// Test map
 	m := map[string]string{"key": "value"}
 	expectedMap := `{"key":"value"}`
-	resultMap := ToJson(m)
+	resultMap, err := ToJson(m)
+	if err != nil {
+		t.Fatalf("ToJson(map) failed: %v", err)
+	}
 	if resultMap != expectedMap {
 		t.Errorf("got %s, want %s", resultMap, expectedMap)
 	}
 
-	// Test marshaling error (channels cannot be marshaled to JSON)
+	// Channels cannot be marshaled to JSON — expect an error.
 	ch := make(chan int)
-	resultErr := ToJson(ch)
-	if resultErr != "" {
-		t.Errorf("expected empty string for marshal error, got %s", resultErr)
+	result, err = ToJson(ch)
+	if err == nil {
+		t.Error("expected error for unmarshalable value, got nil")
+	}
+	if result != "" {
+		t.Errorf("expected empty string on error, got %s", result)
 	}
 }

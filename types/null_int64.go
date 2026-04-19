@@ -9,19 +9,26 @@ import (
 	"strings"
 )
 
+// NullInt64 is a nullable int64. Valid reports whether Val holds a
+// meaningful value (true) or a SQL/JSON NULL (false).
 type NullInt64 struct {
 	Val   int64
-	Valid bool // Valid is true if Val is not NULL
+	Valid bool
 }
 
+// NewNullInt64 constructs a valid NullInt64 wrapping value.
 func NewNullInt64(value int64) NullInt64 {
 	return NullInt64{Val: value, Valid: true}
 }
 
+// NewNullInt64Empty returns an invalid (NULL) NullInt64.
 func NewNullInt64Empty() NullInt64 {
 	return NullInt64{Valid: false}
 }
 
+// NullInt64FromString parses an int64 from the string pointer. A nil
+// pointer, an empty string, the tokens "null"/"nil" (case-insensitive),
+// or a parse error all produce an invalid NullInt64.
 func NullInt64FromString(strValue *string) NullInt64 {
 	if strValue == nil || *strValue == "" ||
 		strings.ToLower(*strValue) == "null" ||
@@ -35,6 +42,8 @@ func NullInt64FromString(strValue *string) NullInt64 {
 	return NewNullInt64(result)
 }
 
+// NullInt64FromNullString parses an int64 from a NullString. An invalid
+// or empty NullString, or a parse error, produce an invalid NullInt64.
 func NullInt64FromNullString(str NullString) NullInt64 {
 	if !str.Valid || str.Val == "" {
 		return NewNullInt64Empty()
@@ -43,14 +52,18 @@ func NullInt64FromNullString(str NullString) NullInt64 {
 	if err != nil {
 		return NewNullInt64Empty()
 	}
-	return NewNullInt64(int64(result))
+	return NewNullInt64(result)
 }
 
+// IsEmpty reports whether the value is NULL (Valid == false).
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullInt64) IsEmpty() bool {
 	return !thisVal.Valid
 }
 
+// ToString renders the value in decimal form, or "" when NULL.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullInt64) ToString() string {
 	if !thisVal.Valid {
@@ -59,6 +72,9 @@ func (thisVal *NullInt64) ToString() string {
 	return fmt.Sprintf("%d", thisVal.Val)
 }
 
+// Value implements the database/sql/driver.Valuer interface. A NULL value
+// is emitted as (nil, nil).
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullInt64) Value() (driver.Value, error) {
 	if !thisVal.Valid {
@@ -67,6 +83,9 @@ func (thisVal NullInt64) Value() (driver.Value, error) {
 	return thisVal.Val, nil
 }
 
+// Scan implements the database/sql.Scanner interface, delegating to
+// sql.NullInt64 so that the driver's NULL signalling is honoured.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullInt64) Scan(value interface{}) error {
 	var s sql.NullInt64
@@ -81,6 +100,8 @@ func (thisVal *NullInt64) Scan(value interface{}) error {
 	return nil
 }
 
+// MarshalJSON renders the value as a JSON number, or null when empty.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullInt64) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
@@ -89,6 +110,9 @@ func (thisVal NullInt64) MarshalJSON() ([]byte, error) {
 	return json.Marshal(thisVal.Val)
 }
 
+// UnmarshalJSON parses a JSON number or the token null. Any other input
+// is treated as a parse error.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullInt64) UnmarshalJSON(data []byte) error {
 	sd := string(data)

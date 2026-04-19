@@ -8,11 +8,15 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// NullDecimal is a nullable arbitrary-precision decimal backed by
+// github.com/shopspring/decimal. Valid reports whether Val holds a
+// meaningful value (true) or a SQL/JSON NULL (false).
 type NullDecimal struct {
 	Val   decimal.Decimal
-	Valid bool // Valid is true if UUID is not NULL
+	Valid bool
 }
 
+// NewNullDecimal constructs a valid NullDecimal wrapping val.
 func NewNullDecimal(val decimal.Decimal) NullDecimal {
 	return NullDecimal{
 		Val:   val,
@@ -20,6 +24,7 @@ func NewNullDecimal(val decimal.Decimal) NullDecimal {
 	}
 }
 
+// NewNullDecimalEmpty returns an invalid (NULL) NullDecimal.
 func NewNullDecimalEmpty() NullDecimal {
 	return NullDecimal{
 		Val:   decimal.Decimal{},
@@ -27,12 +32,15 @@ func NewNullDecimalEmpty() NullDecimal {
 	}
 }
 
+// IsEmpty reports whether the value is NULL (Valid == false).
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullDecimal) IsEmpty() bool {
 	return !thisVal.Valid
 }
 
-//goland:noinspection GoUnusedExportedFunction
+// ToString renders the decimal via decimal.Decimal.String (no trailing
+// zeros), or "" when NULL.
 func (thisVal *NullDecimal) ToString() string {
 	if !thisVal.Valid {
 		return ""
@@ -40,6 +48,9 @@ func (thisVal *NullDecimal) ToString() string {
 	return thisVal.Val.String()
 }
 
+// NullDecimalFromString parses a decimal from the string pointer. A nil
+// pointer, an empty string, the tokens "null"/"nil" (case-insensitive),
+// or a parse error all produce an invalid NullDecimal.
 func NullDecimalFromString(strValue *string) NullDecimal {
 	if strValue == nil || *strValue == "" ||
 		strings.ToLower(*strValue) == "null" ||
@@ -53,6 +64,8 @@ func NullDecimalFromString(strValue *string) NullDecimal {
 	return NewNullDecimal(result)
 }
 
+// MulNullDecimals multiplies two NullDecimals. The result is NULL if
+// either operand is NULL.
 func MulNullDecimals(val1, val2 NullDecimal) NullDecimal {
 	if !val1.Valid || !val2.Valid {
 		return NewNullDecimalEmpty()
@@ -60,6 +73,10 @@ func MulNullDecimals(val1, val2 NullDecimal) NullDecimal {
 	return NewNullDecimal(val1.Val.Mul(val2.Val))
 }
 
+// Scan implements the database/sql.Scanner interface. The decimal is
+// received as text from the driver (via sql.NullString) and parsed
+// through NullDecimalFromString so precision is preserved.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullDecimal) Scan(value interface{}) error {
 	var s sql.NullString
@@ -74,15 +91,20 @@ func (thisVal *NullDecimal) Scan(value interface{}) error {
 	return nil
 }
 
+// MarshalJSON renders the value as a JSON number (the format
+// decimal.Decimal itself emits), or null when empty.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullDecimal) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
 		return nullJson, nil
 	}
 	return json.Marshal(thisVal.Val)
-
 }
 
+// UnmarshalJSON parses a JSON number, JSON string, or the token null.
+// Any other input is treated as a parse error.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullDecimal) UnmarshalJSON(data []byte) error {
 	sd := string(data)
