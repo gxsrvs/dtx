@@ -112,12 +112,11 @@ var (
 func NewClientNull(p Profile) ClientNull {
 	switch p {
 	case ProfileAllValid:
-		src := sampleSource
 		return ClientNull{
 			Id:        42,
 			FirstName: types.NewNullString("Yuri"),
 			LastName:  types.NewNullString("Gagarin"),
-			Source:    &src,
+			Source:    new(sampleSource),
 			Document: &DocumentNull{
 				TypeId:     1,
 				Number:     types.NewNullString("VVS-1957-09-01"),
@@ -136,12 +135,11 @@ func NewClientNull(p Profile) ClientNull {
 	case ProfileMixed:
 		// FirstName and Source are present; LastName, Document and
 		// BirthDate are absent — about half the optional payload.
-		src := sampleSource
 		return ClientNull{
 			Id:        42,
 			FirstName: types.NewNullString("Yuri"),
 			LastName:  types.NewNullStringEmpty(),
-			Source:    &src,
+			Source:    new(sampleSource),
 			BirthDate: types.NewNullDateEmpty(),
 		}
 	default:
@@ -153,33 +151,28 @@ func NewClientNull(p Profile) ClientNull {
 func NewClientPtr(p Profile) ClientPtr {
 	switch p {
 	case ProfileAllValid:
-		src := sampleSource
-		issue := sampleDocIssue
-		expiry := sampleDocExpiry
-		birth := sampleBirth
 		return ClientPtr{
 			Id:        42,
 			FirstName: new("Yuri"),
 			LastName:  new("Gagarin"),
-			Source:    &src,
+			Source:    new(sampleSource),
 			Document: &DocumentPtr{
 				TypeId:     1,
 				Number:     new("VVS-1957-09-01"),
-				DateIssue:  &issue,
-				DateExpiry: &expiry,
+				DateIssue:  new(sampleDocIssue),
+				DateExpiry: new(sampleDocExpiry),
 			},
-			BirthDate: &birth,
+			BirthDate: new(sampleBirth),
 		}
 	case ProfileAllNull:
 		return ClientPtr{
 			Id: 42,
 		}
 	case ProfileMixed:
-		src := sampleSource
 		return ClientPtr{
 			Id:        42,
 			FirstName: new("Yuri"),
-			Source:    &src,
+			Source:    new(sampleSource),
 		}
 	default:
 		panic("bench: unknown profile")
