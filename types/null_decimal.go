@@ -119,7 +119,7 @@ func (thisVal *NullDecimal) Scan(value interface{}) error {
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullDecimal) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
-		return nullJson, nil
+		return nullJSON, nil
 	}
 	return json.Marshal(thisVal.Val)
 }

@@ -9,25 +9,25 @@ import (
 	"github.com/google/uuid"
 )
 
-// NullUuid is a nullable UUID backed by github.com/google/uuid. Valid
+// NullUUID is a nullable UUID backed by github.com/google/uuid. Valid
 // reports whether Val holds a meaningful value (true) or a SQL/JSON
 // NULL (false).
-type NullUuid struct {
+type NullUUID struct {
 	Val   uuid.UUID
 	Valid bool
 }
 
-// NewNullUuid constructs a valid NullUuid wrapping val.
-func NewNullUuid(val uuid.UUID) NullUuid {
-	return NullUuid{
+// NewNullUUID constructs a valid NullUUID wrapping val.
+func NewNullUUID(val uuid.UUID) NullUUID {
+	return NullUUID{
 		Val:   val,
 		Valid: true,
 	}
 }
 
-// NewNullUuidEmpty returns an invalid (NULL) NullUuid.
-func NewNullUuidEmpty() NullUuid {
-	return NullUuid{
+// NewNullUUIDEmpty returns an invalid (NULL) NullUUID.
+func NewNullUUIDEmpty() NullUUID {
+	return NullUUID{
 		Val:   uuid.UUID{},
 		Valid: false,
 	}
@@ -36,7 +36,7 @@ func NewNullUuidEmpty() NullUuid {
 // IsEmpty reports whether the value is NULL (Valid == false).
 //
 //goland:noinspection GoMixedReceiverTypes
-func (thisVal *NullUuid) IsEmpty() bool {
+func (thisVal *NullUUID) IsEmpty() bool {
 	return !thisVal.Valid
 }
 
@@ -45,33 +45,33 @@ func (thisVal *NullUuid) IsEmpty() bool {
 // (Go 1.24+) to elide invalid wrappers from marshalled output.
 //
 //goland:noinspection GoMixedReceiverTypes
-func (thisVal NullUuid) IsZero() bool {
+func (thisVal NullUUID) IsZero() bool {
 	return !thisVal.Valid
 }
 
 // ToString renders the UUID in canonical 8-4-4-4-12 hex form, or ""
 // when NULL.
-func (thisVal *NullUuid) ToString() string {
+func (thisVal *NullUUID) ToString() string {
 	if !thisVal.Valid {
 		return ""
 	}
 	return thisVal.Val.String()
 }
 
-// NullUuidFromString parses a UUID from the string pointer. A nil
+// NullUUIDFromString parses a UUID from the string pointer. A nil
 // pointer, an empty string, the tokens "null"/"nil" (case-insensitive),
-// or a parse error all produce an invalid NullUuid.
-func NullUuidFromString(strValue *string) NullUuid {
+// or a parse error all produce an invalid NullUUID.
+func NullUUIDFromString(strValue *string) NullUUID {
 	if strValue == nil || *strValue == "" ||
 		strings.ToLower(*strValue) == "null" ||
 		strings.ToLower(*strValue) == "nil" {
-		return NewNullUuidEmpty()
+		return NewNullUUIDEmpty()
 	}
 	result, err := uuid.Parse(*strValue)
 	if err != nil {
-		return NewNullUuidEmpty()
+		return NewNullUUIDEmpty()
 	}
-	return NewNullUuid(result)
+	return NewNullUUID(result)
 }
 
 // Value implements the database/sql/driver.Valuer interface. A NULL
@@ -80,7 +80,7 @@ func NullUuidFromString(strValue *string) NullUuid {
 // 8-4-4-4-12 hex string.
 //
 //goland:noinspection GoMixedReceiverTypes
-func (thisVal NullUuid) Value() (driver.Value, error) {
+func (thisVal NullUUID) Value() (driver.Value, error) {
 	if !thisVal.Valid {
 		return nil, nil
 	}
@@ -89,19 +89,19 @@ func (thisVal NullUuid) Value() (driver.Value, error) {
 
 // Scan implements the database/sql.Scanner interface. The UUID is
 // received as text from the driver (via sql.NullString) and parsed
-// through NullUuidFromString.
+// through NullUUIDFromString.
 //
 //goland:noinspection GoMixedReceiverTypes
-func (thisVal *NullUuid) Scan(value interface{}) error {
+func (thisVal *NullUUID) Scan(value interface{}) error {
 	var s sql.NullString
 	if err := s.Scan(value); err != nil {
 		return err
 	}
 	if !s.Valid {
-		*thisVal = NewNullUuidEmpty()
+		*thisVal = NewNullUUIDEmpty()
 		return nil
 	}
-	*thisVal = NullUuidFromString(&s.String)
+	*thisVal = NullUUIDFromString(&s.String)
 	return nil
 }
 
@@ -109,9 +109,9 @@ func (thisVal *NullUuid) Scan(value interface{}) error {
 // form, or null when empty.
 //
 //goland:noinspection GoMixedReceiverTypes
-func (thisVal NullUuid) MarshalJSON() ([]byte, error) {
+func (thisVal NullUUID) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
-		return nullJson, nil
+		return nullJSON, nil
 	}
 	return json.Marshal(thisVal.Val)
 }
@@ -120,7 +120,7 @@ func (thisVal NullUuid) MarshalJSON() ([]byte, error) {
 // null. Any other input is treated as a parse error.
 //
 //goland:noinspection GoMixedReceiverTypes
-func (thisVal *NullUuid) UnmarshalJSON(data []byte) error {
+func (thisVal *NullUUID) UnmarshalJSON(data []byte) error {
 	sd := string(data)
 	if sd == "null" || sd == "" {
 		thisVal.Valid = false

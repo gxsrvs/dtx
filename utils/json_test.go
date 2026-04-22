@@ -12,11 +12,11 @@ type testObject struct {
 	Name string `json:"name"`
 }
 
-func TestLoadObjectFromJson(t *testing.T) {
+func TestLoadObjectFromJSON(t *testing.T) {
 	jsonStr := `{"id": 1, "name": "Test"}`
-	obj, err := LoadObjectFromJson[testObject](jsonStr)
+	obj, err := LoadObjectFromJSON[testObject](jsonStr)
 	if err != nil {
-		t.Fatalf("LoadObjectFromJson failed: %v", err)
+		t.Fatalf("LoadObjectFromJSON failed: %v", err)
 	}
 
 	expected := &testObject{ID: 1, Name: "Test"}
@@ -25,17 +25,17 @@ func TestLoadObjectFromJson(t *testing.T) {
 	}
 
 	// Test error case
-	_, err = LoadObjectFromJson[testObject](`invalid json`)
+	_, err = LoadObjectFromJSON[testObject](`invalid json`)
 	if err == nil {
 		t.Error("expected error for invalid json, got nil")
 	}
 }
 
-func TestLoadCollectionFromJson(t *testing.T) {
+func TestLoadCollectionFromJSON(t *testing.T) {
 	jsonStr := `[{"id": 1, "name": "Test1"}, {"id": 2, "name": "Test2"}]`
-	coll, err := LoadCollectionFromJson[testObject](jsonStr)
+	coll, err := LoadCollectionFromJSON[testObject](jsonStr)
 	if err != nil {
-		t.Fatalf("LoadCollectionFromJson failed: %v", err)
+		t.Fatalf("LoadCollectionFromJSON failed: %v", err)
 	}
 
 	expected := []testObject{{ID: 1, Name: "Test1"}, {ID: 2, Name: "Test2"}}
@@ -44,13 +44,13 @@ func TestLoadCollectionFromJson(t *testing.T) {
 	}
 
 	// Test error case
-	_, err = LoadCollectionFromJson[testObject](`invalid json`)
+	_, err = LoadCollectionFromJSON[testObject](`invalid json`)
 	if err == nil {
 		t.Error("expected error for invalid json, got nil")
 	}
 }
 
-func TestLoadObjectFromJsonFile(t *testing.T) {
+func TestLoadObjectFromJSONFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	fileName := filepath.Join(tmpDir, "test_obj.json")
 	jsonStr := `{"id": 10, "name": "FileTest"}`
@@ -59,9 +59,9 @@ func TestLoadObjectFromJsonFile(t *testing.T) {
 		t.Fatalf("failed to write temp file: %v", err)
 	}
 
-	obj, err := LoadObjectFromJsonFile[testObject](fileName)
+	obj, err := LoadObjectFromJSONFile[testObject](fileName)
 	if err != nil {
-		t.Fatalf("LoadObjectFromJsonFile failed: %v", err)
+		t.Fatalf("LoadObjectFromJSONFile failed: %v", err)
 	}
 
 	expected := &testObject{ID: 10, Name: "FileTest"}
@@ -70,7 +70,7 @@ func TestLoadObjectFromJsonFile(t *testing.T) {
 	}
 
 	// Test file not found
-	_, err = LoadObjectFromJsonFile[testObject]("non_existent.json")
+	_, err = LoadObjectFromJSONFile[testObject]("non_existent.json")
 	if err == nil {
 		t.Error("expected error for non-existent file, got nil")
 	}
@@ -78,13 +78,13 @@ func TestLoadObjectFromJsonFile(t *testing.T) {
 	// Test invalid json in file
 	invalidFileName := filepath.Join(tmpDir, "invalid.json")
 	_ = os.WriteFile(invalidFileName, []byte(`{invalid}`), 0644)
-	_, err = LoadObjectFromJsonFile[testObject](invalidFileName)
+	_, err = LoadObjectFromJSONFile[testObject](invalidFileName)
 	if err == nil {
 		t.Error("expected error for invalid json in file, got nil")
 	}
 }
 
-func TestLoadCollectionFromJsonFile(t *testing.T) {
+func TestLoadCollectionFromJSONFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	fileName := filepath.Join(tmpDir, "test_coll.json")
 	jsonStr := `[{"id": 1, "name": "A"}, {"id": 2, "name": "B"}]`
@@ -93,9 +93,9 @@ func TestLoadCollectionFromJsonFile(t *testing.T) {
 		t.Fatalf("failed to write temp file: %v", err)
 	}
 
-	coll, err := LoadCollectionFromJsonFile[testObject](fileName)
+	coll, err := LoadCollectionFromJSONFile[testObject](fileName)
 	if err != nil {
-		t.Fatalf("LoadCollectionFromJsonFile failed: %v", err)
+		t.Fatalf("LoadCollectionFromJSONFile failed: %v", err)
 	}
 
 	expected := []testObject{{ID: 1, Name: "A"}, {ID: 2, Name: "B"}}
@@ -104,18 +104,18 @@ func TestLoadCollectionFromJsonFile(t *testing.T) {
 	}
 
 	// Test file not found
-	_, err = LoadCollectionFromJsonFile[testObject]("non_existent.json")
+	_, err = LoadCollectionFromJSONFile[testObject]("non_existent.json")
 	if err == nil {
 		t.Error("expected error for non-existent file, got nil")
 	}
 }
 
-func TestToJson(t *testing.T) {
+func TestToJSON(t *testing.T) {
 	obj := testObject{ID: 5, Name: "JSON"}
 	expected := `{"id":5,"name":"JSON"}`
-	result, err := ToJson(obj)
+	result, err := ToJSON(obj)
 	if err != nil {
-		t.Fatalf("ToJson failed: %v", err)
+		t.Fatalf("ToJSON failed: %v", err)
 	}
 	if result != expected {
 		t.Errorf("got %s, want %s", result, expected)
@@ -124,9 +124,9 @@ func TestToJson(t *testing.T) {
 	// Test map
 	m := map[string]string{"key": "value"}
 	expectedMap := `{"key":"value"}`
-	resultMap, err := ToJson(m)
+	resultMap, err := ToJSON(m)
 	if err != nil {
-		t.Fatalf("ToJson(map) failed: %v", err)
+		t.Fatalf("ToJSON(map) failed: %v", err)
 	}
 	if resultMap != expectedMap {
 		t.Errorf("got %s, want %s", resultMap, expectedMap)
@@ -134,7 +134,7 @@ func TestToJson(t *testing.T) {
 
 	// Channels cannot be marshaled to JSON — expect an error.
 	ch := make(chan int)
-	result, err = ToJson(ch)
+	result, err = ToJSON(ch)
 	if err == nil {
 		t.Error("expected error for unmarshalable value, got nil")
 	}

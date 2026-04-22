@@ -117,7 +117,7 @@ func (thisVal *NullInt16) Scan(value interface{}) error {
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullInt16) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
-		return nullJson, nil
+		return nullJSON, nil
 	}
 	// 8 bytes covers the maximum int16 width including a leading sign.
 	return strconv.AppendInt(make([]byte, 0, 8), int64(thisVal.Val), 10), nil

@@ -128,7 +128,7 @@ conventions:
 | `NullInt64`   | `int64`                                   | JSON number                                 | decimal form (`fmt %d`)                       | `sql.NullInt64`                     | Same parsing rules as `NullInt16`. |
 | `NullFloat`   | `float64`                                 | JSON number                                 | `fmt %f` (six fractional digits)              | `sql.NullFloat64`                   | If exact decimal serialisation matters (money, ledger entries), prefer `NullDecimal` — `float64` is binary and cannot represent `0.1` exactly. |
 | `NullDecimal` | `decimal.Decimal` (`shopspring/decimal`)  | JSON number (the form `decimal.Decimal` emits) | `decimal.Decimal.String()` — no trailing zeros | `sql.NullString` (text from the driver) | The decimal crosses the driver boundary as text to preserve precision. The helper `MulNullDecimals(a, b)` multiplies two `NullDecimal`s and returns NULL if either operand is NULL. |
-| `NullUuid`    | `uuid.UUID` (`google/uuid`)               | JSON string in canonical `8-4-4-4-12` hex form | canonical `8-4-4-4-12` hex form               | `sql.NullString` (text from the driver) | Parsed via `uuid.Parse`, which accepts the canonical form, the bracketed `{…}` form, and the URN `urn:uuid:…` form. |
+| `NullUUID`    | `uuid.UUID` (`google/uuid`)               | JSON string in canonical `8-4-4-4-12` hex form | canonical `8-4-4-4-12` hex form               | `sql.NullString` (text from the driver) | Parsed via `uuid.Parse`, which accepts the canonical form, the bracketed `{…}` form, and the URN `urn:uuid:…` form. |
 
 ## Usage
 
@@ -283,7 +283,7 @@ keep `Null*` for the rest of the DTO.
 
 ## Dependencies
 
-- `github.com/google/uuid` — UUID handling for `NullUuid`.
+- `github.com/google/uuid` — UUID handling for `NullUUID`.
 - `github.com/shopspring/decimal` — arbitrary-precision decimals for `NullDecimal`.
 
 Both are permissive-licensed (BSD-3-Clause and MIT respectively). See

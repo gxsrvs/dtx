@@ -97,7 +97,7 @@ func (thisVal *NullOffsetDateTime) Scan(value interface{}) error {
 // json.Marshal(formatOffsetDateTime(...)) would perform.
 func (thisVal NullOffsetDateTime) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
-		return nullJson, nil
+		return nullJSON, nil
 	}
 	// "2006-01-02T15:04:05.999999999Z07:00" is at most 35 bytes plus quotes.
 	buf := make([]byte, 0, 40)

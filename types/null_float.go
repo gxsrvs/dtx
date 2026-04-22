@@ -104,7 +104,7 @@ func (thisVal *NullFloat) Scan(value interface{}) error {
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullFloat) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
-		return nullJson, nil
+		return nullJSON, nil
 	}
 	// 32 bytes is enough for any float64 in 'g' form including sign,
 	// decimal point, and exponent.

@@ -1,9 +1,9 @@
 package types
 
-// nullJson is the canonical JSON null token reused by every nullable
+// nullJSON is the canonical JSON null token reused by every nullable
 // type's MarshalJSON implementation, so that the binary representation
 // stays identical across types.
-var nullJson = []byte("null")
+var nullJSON = []byte("null")
 
 // jsonTrue and jsonFalse are shared literal slices used by NullBool's
 // MarshalJSON to skip allocation on the valid path. Treat them as

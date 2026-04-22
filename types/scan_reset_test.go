@@ -142,9 +142,9 @@ func TestScanTransitionValidToNull(t *testing.T) {
 		}
 	})
 
-	t.Run("NullUuid", func(t *testing.T) {
+	t.Run("NullUUID", func(t *testing.T) {
 		id := uuid.New()
-		var v NullUuid
+		var v NullUUID
 		if err := v.Scan(id.String()); err != nil {
 			t.Fatal(err)
 		}

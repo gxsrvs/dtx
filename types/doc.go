@@ -24,7 +24,7 @@
 //     ("15:04:05[.fff…]Z" or "±HH:MM").
 //
 // Additional nullable wrappers cover primitive types: NullString,
-// NullBool, NullInt16/32/64, NullFloat, NullDecimal and NullUuid.
+// NullBool, NullInt16/32/64, NullFloat, NullDecimal and NullUUID.
 //
 // Nullable types accept the JSON token null on UnmarshalJSON and SQL NULL
 // on Scan; their not-null counterparts reject both. Scan delegates to the

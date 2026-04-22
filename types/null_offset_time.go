@@ -96,7 +96,7 @@ func (thisVal *NullOffsetTime) Scan(value interface{}) error {
 // json.Marshal(formatOffsetTime(...)) would perform.
 func (thisVal NullOffsetTime) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
-		return nullJson, nil
+		return nullJSON, nil
 	}
 	// "15:04:05.999999999Z07:00" is at most 24 bytes plus quotes.
 	buf := make([]byte, 0, 32)

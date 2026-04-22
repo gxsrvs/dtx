@@ -40,7 +40,7 @@ func (p Profile) String() string {
 // there is no representation difference between the dtx and pointer
 // styles for this entity.
 type LeadSource struct {
-	Id   int16  `json:"id"`
+	ID   int16  `json:"id"`
 	Code string `json:"code"`
 	Name string `json:"name"`
 }
@@ -51,7 +51,7 @@ type LeadSource struct {
 
 // DocumentNull is the dtx variant of Document.
 type DocumentNull struct {
-	TypeId     int16            `json:"typeId"`
+	TypeID     int16            `json:"typeId"`
 	Number     types.NullString `json:"number,omitzero"`
 	DateIssue  types.NullDate   `json:"dateIssue,omitzero"`
 	DateExpiry types.NullDate   `json:"dateExpiry,omitzero"`
@@ -59,7 +59,7 @@ type DocumentNull struct {
 
 // ClientNull is the dtx variant of Client.
 type ClientNull struct {
-	Id        int32            `json:"id"`
+	ID        int32            `json:"id"`
 	FirstName types.NullString `json:"firstName,omitzero"`
 	LastName  types.NullString `json:"lastName,omitzero"`
 	Source    *LeadSource      `json:"source,omitempty"`
@@ -73,7 +73,7 @@ type ClientNull struct {
 
 // DocumentPtr is the pointer variant of Document.
 type DocumentPtr struct {
-	TypeId     int16      `json:"typeId"`
+	TypeID     int16      `json:"typeId"`
 	Number     *string    `json:"number,omitempty"`
 	DateIssue  *time.Time `json:"dateIssue,omitempty"`
 	DateExpiry *time.Time `json:"dateExpiry,omitempty"`
@@ -81,7 +81,7 @@ type DocumentPtr struct {
 
 // ClientPtr is the pointer variant of Client.
 type ClientPtr struct {
-	Id        int32        `json:"id"`
+	ID        int32        `json:"id"`
 	FirstName *string      `json:"firstName,omitempty"`
 	LastName  *string      `json:"lastName,omitempty"`
 	Source    *LeadSource  `json:"source,omitempty"`
@@ -102,7 +102,7 @@ var (
 	sampleDocExpiry = time.Date(1968, 3, 27, 0, 0, 0, 0, time.UTC)
 
 	sampleSource = LeadSource{
-		Id:   7,
+		ID:   7,
 		Code: "REFERRAL",
 		Name: "Customer referral programme",
 	}
@@ -113,12 +113,12 @@ func NewClientNull(p Profile) ClientNull {
 	switch p {
 	case ProfileAllValid:
 		return ClientNull{
-			Id:        42,
+			ID:        42,
 			FirstName: types.NewNullString("Yuri"),
 			LastName:  types.NewNullString("Gagarin"),
 			Source:    new(sampleSource),
 			Document: &DocumentNull{
-				TypeId:     1,
+				TypeID:     1,
 				Number:     types.NewNullString("VVS-1957-09-01"),
 				DateIssue:  types.NewNullDate(sampleDocIssue),
 				DateExpiry: types.NewNullDate(sampleDocExpiry),
@@ -127,7 +127,7 @@ func NewClientNull(p Profile) ClientNull {
 		}
 	case ProfileAllNull:
 		return ClientNull{
-			Id:        42,
+			ID:        42,
 			FirstName: types.NewNullStringEmpty(),
 			LastName:  types.NewNullStringEmpty(),
 			BirthDate: types.NewNullDateEmpty(),
@@ -136,7 +136,7 @@ func NewClientNull(p Profile) ClientNull {
 		// FirstName and Source are present; LastName, Document and
 		// BirthDate are absent — about half the optional payload.
 		return ClientNull{
-			Id:        42,
+			ID:        42,
 			FirstName: types.NewNullString("Yuri"),
 			LastName:  types.NewNullStringEmpty(),
 			Source:    new(sampleSource),
@@ -152,12 +152,12 @@ func NewClientPtr(p Profile) ClientPtr {
 	switch p {
 	case ProfileAllValid:
 		return ClientPtr{
-			Id:        42,
+			ID:        42,
 			FirstName: new("Yuri"),
 			LastName:  new("Gagarin"),
 			Source:    new(sampleSource),
 			Document: &DocumentPtr{
-				TypeId:     1,
+				TypeID:     1,
 				Number:     new("VVS-1957-09-01"),
 				DateIssue:  new(sampleDocIssue),
 				DateExpiry: new(sampleDocExpiry),
@@ -166,11 +166,11 @@ func NewClientPtr(p Profile) ClientPtr {
 		}
 	case ProfileAllNull:
 		return ClientPtr{
-			Id: 42,
+			ID: 42,
 		}
 	case ProfileMixed:
 		return ClientPtr{
-			Id:        42,
+			ID:        42,
 			FirstName: new("Yuri"),
 			Source:    new(sampleSource),
 		}

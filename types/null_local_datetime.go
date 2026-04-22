@@ -98,7 +98,7 @@ func (thisVal *NullLocalDateTime) Scan(value interface{}) error {
 // json.Marshal(formatLocalDateTime(...)) would perform.
 func (thisVal NullLocalDateTime) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
-		return nullJson, nil
+		return nullJSON, nil
 	}
 	v := thisVal.Val
 	t := time.Date(v.Year, v.Month, v.Day, v.Hour, v.Minute, v.Second, v.Nanosec, time.UTC)

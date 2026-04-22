@@ -7,108 +7,108 @@ import (
 	"github.com/google/uuid"
 )
 
-const sampleUuid = "550e8400-e29b-41d4-a716-446655440000"
+const sampleUUID = "550e8400-e29b-41d4-a716-446655440000"
 
-func TestNullUuidFromString(t *testing.T) {
-	s := sampleUuid
-	nu := NullUuidFromString(&s)
+func TestNullUUIDFromString(t *testing.T) {
+	s := sampleUUID
+	nu := NullUUIDFromString(&s)
 	if !nu.Valid || nu.Val.String() != s {
 		t.Errorf("Expected %s, got %v", s, nu)
 	}
 
-	nuEmpty := NullUuidFromString(nil)
+	nuEmpty := NullUUIDFromString(nil)
 	if nuEmpty.Valid {
-		t.Error("Expected invalid NullUuid from nil pointer")
+		t.Error("Expected invalid NullUUID from nil pointer")
 	}
 
-	nuInvalid := NullUuidFromString(new("invalid-uuid"))
+	nuInvalid := NullUUIDFromString(new("invalid-uuid"))
 	if nuInvalid.Valid {
-		t.Error("Expected invalid NullUuid from invalid string")
+		t.Error("Expected invalid NullUUID from invalid string")
 	}
 
 	for _, s := range []string{"", "null", "NIL"} {
-		if got := NullUuidFromString(&s); got.Valid {
-			t.Errorf("Expected invalid NullUuid from %q", s)
+		if got := NullUUIDFromString(&s); got.Valid {
+			t.Errorf("Expected invalid NullUUID from %q", s)
 		}
 	}
 }
 
-func TestNewNullUuid(t *testing.T) {
-	u, _ := uuid.Parse(sampleUuid)
-	v := NewNullUuid(u)
+func TestNewNullUUID(t *testing.T) {
+	u, _ := uuid.Parse(sampleUUID)
+	v := NewNullUUID(u)
 	if !v.Valid || v.Val != u {
 		t.Errorf("Expected (%v, valid), got %v", u, v)
 	}
-	if NewNullUuidEmpty().Valid {
-		t.Error("Expected invalid NullUuid from NewNullUuidEmpty")
+	if NewNullUUIDEmpty().Valid {
+		t.Error("Expected invalid NullUUID from NewNullUUIDEmpty")
 	}
 }
 
-func TestNullUuid_IsEmptyToString(t *testing.T) {
-	u, _ := uuid.Parse(sampleUuid)
-	v := NewNullUuid(u)
-	if v.IsEmpty() || v.ToString() != sampleUuid {
-		t.Errorf("Expected (false, %s), got (%v, %q)", sampleUuid, v.IsEmpty(), v.ToString())
+func TestNullUUID_IsEmptyToString(t *testing.T) {
+	u, _ := uuid.Parse(sampleUUID)
+	v := NewNullUUID(u)
+	if v.IsEmpty() || v.ToString() != sampleUUID {
+		t.Errorf("Expected (false, %s), got (%v, %q)", sampleUUID, v.IsEmpty(), v.ToString())
 	}
-	empty := NewNullUuidEmpty()
+	empty := NewNullUUIDEmpty()
 	if !empty.IsEmpty() || empty.ToString() != "" {
 		t.Errorf("Expected (true, ''), got (%v, %q)", empty.IsEmpty(), empty.ToString())
 	}
 }
 
-func TestNullUuid_Scan(t *testing.T) {
+func TestNullUUID_Scan(t *testing.T) {
 	cases := []struct {
 		name   string
 		input  interface{}
 		wantOK bool
 	}{
-		{"string", sampleUuid, true},
-		{"[]byte", []byte(sampleUuid), true},
+		{"string", sampleUUID, true},
+		{"[]byte", []byte(sampleUUID), true},
 		{"nil", nil, false},
 		{"invalid string", "not-a-uuid", false},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			var v NullUuid
+			var v NullUUID
 			if err := v.Scan(c.input); err != nil {
 				t.Fatalf("Scan: %v", err)
 			}
 			if v.Valid != c.wantOK {
 				t.Errorf("Expected Valid=%v, got %v", c.wantOK, v.Valid)
 			}
-			if v.Valid && v.Val.String() != sampleUuid {
-				t.Errorf("Expected %s, got %s", sampleUuid, v.Val)
+			if v.Valid && v.Val.String() != sampleUUID {
+				t.Errorf("Expected %s, got %s", sampleUUID, v.Val)
 			}
 		})
 	}
 }
 
-// TestNullUuid_Value verifies the driver.Valuer contract: a valid
+// TestNullUUID_Value verifies the driver.Valuer contract: a valid
 // wrapper delegates to uuid.UUID.Value and yields the canonical
 // 8-4-4-4-12 hex string, while an empty (NULL) wrapper returns
 // (nil, nil).
-func TestNullUuid_Value(t *testing.T) {
-	u, _ := uuid.Parse(sampleUuid)
-	v, err := NewNullUuid(u).Value()
+func TestNullUUID_Value(t *testing.T) {
+	u, _ := uuid.Parse(sampleUUID)
+	v, err := NewNullUUID(u).Value()
 	if err != nil {
 		t.Fatalf("Value: %v", err)
 	}
-	if s, ok := v.(string); !ok || s != sampleUuid {
-		t.Errorf("Expected %q, got %v (type %T)", sampleUuid, v, v)
+	if s, ok := v.(string); !ok || s != sampleUUID {
+		t.Errorf("Expected %q, got %v (type %T)", sampleUUID, v, v)
 	}
-	v, err = NewNullUuidEmpty().Value()
+	v, err = NewNullUUIDEmpty().Value()
 	if err != nil || v != nil {
 		t.Errorf("Expected (nil, nil), got (%v, %v)", v, err)
 	}
 }
 
-func TestNullUuid_JSON(t *testing.T) {
-	u, _ := uuid.Parse(sampleUuid)
-	data, _ := json.Marshal(NewNullUuid(u))
-	if string(data) != `"`+sampleUuid+`"` {
-		t.Errorf("Expected %q, got %s", sampleUuid, data)
+func TestNullUUID_JSON(t *testing.T) {
+	u, _ := uuid.Parse(sampleUUID)
+	data, _ := json.Marshal(NewNullUUID(u))
+	if string(data) != `"`+sampleUUID+`"` {
+		t.Errorf("Expected %q, got %s", sampleUUID, data)
 	}
-	data, _ = json.Marshal(NewNullUuidEmpty())
+	data, _ = json.Marshal(NewNullUUIDEmpty())
 	if string(data) != "null" {
 		t.Errorf("Expected null, got %s", data)
 	}
@@ -118,12 +118,12 @@ func TestNullUuid_JSON(t *testing.T) {
 		wantOK  bool
 		wantErr bool
 	}{
-		{`"` + sampleUuid + `"`, true, false},
+		{`"` + sampleUUID + `"`, true, false},
 		{"null", false, false},
 		{`"not-a-uuid"`, false, true},
 	}
 	for _, c := range cases {
-		var v NullUuid
+		var v NullUUID
 		err := json.Unmarshal([]byte(c.input), &v)
 		if (err != nil) != c.wantErr {
 			t.Errorf("input %s: wantErr=%v, got err=%v", c.input, c.wantErr, err)

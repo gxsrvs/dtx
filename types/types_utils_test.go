@@ -124,10 +124,9 @@ func TestAssembleDateTimeTZ_InvalidZone(t *testing.T) {
 	tm := time.Date(0, 1, 1, 9, 7, 0, 0, time.UTC)
 	// Six-char candidate with non-numeric content: should fail without
 	// interfering with the no-colon fallback.
-	res, err := AssembleDateTimeTZ(&d, &tm, "+xx:yy")
+	_, err := AssembleDateTimeTZ(&d, &tm, "+xx:yy")
 	if err == nil {
 		t.Skip("Implementation accepts non-numeric zone; skipping")
-		_ = res
 	}
 }
 

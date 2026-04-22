@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-04-22
+
+### Changed
+
+**BREAKING**: public-API renames to follow the Go acronym convention
+(capitalise initialisms — `revive`'s `var-naming` rule). Behaviour is
+unchanged; this release is a pure rename.
+
+| Before                                | After                                 |
+| ------------------------------------- | ------------------------------------- |
+| `types.NullUuid`                      | `types.NullUUID`                      |
+| `types.NewNullUuid`                   | `types.NewNullUUID`                   |
+| `types.NewNullUuidEmpty`              | `types.NewNullUUIDEmpty`              |
+| `types.NullUuidFromString`            | `types.NullUUIDFromString`            |
+| `utils.ToJson`                        | `utils.ToJSON`                        |
+| `utils.LoadObjectFromJson`            | `utils.LoadObjectFromJSON`            |
+| `utils.LoadCollectionFromJson`        | `utils.LoadCollectionFromJSON`        |
+| `utils.LoadObjectFromJsonFile`        | `utils.LoadObjectFromJSONFile`        |
+| `utils.LoadCollectionFromJsonFile`    | `utils.LoadCollectionFromJSONFile`    |
+
+A blanket `sed -i 's/NullUuid/NullUUID/g; s/FromJson/FromJSON/g; s/ToJson/ToJSON/g'`
+over the consumer codebase will migrate callers.
+
+### Fixed
+
+- `NSFromString` collapsed a redundant `valid := true` / `if s == ""`
+  pattern into `Valid: s != ""` (`staticcheck QF1007`).
+- `TestAssembleDateTimeTZ_InvalidZone` discarded its first return
+  through a dead assignment; switched to `_` (`staticcheck SA4006`).
+- CI: `golangci/golangci-lint-action` bumped `v6 → v7` with
+  `install-mode: goinstall`, so the linter is rebuilt from source
+  with the project's Go toolchain and stays compatible with
+  `.golangci.yml` (v2 schema).
+
 ## [0.1.1] — 2026-04-22
 
 ### Added
@@ -29,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial public release.
 
-[Unreleased]: https://github.com/gxsrvs/dtx/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/gxsrvs/dtx/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/gxsrvs/dtx/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/gxsrvs/dtx/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/gxsrvs/dtx/releases/tag/v0.1.0

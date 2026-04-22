@@ -29,7 +29,7 @@ func TestToString(t *testing.T) {
 		{"NullOffsetDateTime", NewNullOffsetDateTime(odt), "1969-07-20T20:17:40Z"},
 		{"NullLocalDateTime", NewNullLocalDateTime(LocalDateTimeFromTime(odt)), "1969-07-20T20:17:40"},
 		{"NullLocalTime", NewNullLocalTime(LocalTimeFromTime(odt)), "20:17:40"},
-		{"NullUuid", NewNullUuid(u), "550e8400-e29b-41d4-a716-446655440000"},
+		{"NullUUID", NewNullUUID(u), "550e8400-e29b-41d4-a716-446655440000"},
 		{"NullDecimal", NewNullDecimal(decimal.NewFromFloat(1.5)), "1.5"},
 
 		{"*NullString", ptr(NewNullString("hello")), "hello"},

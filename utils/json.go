@@ -6,9 +6,9 @@ import (
 	"os"
 )
 
-// LoadObjectFromJson unmarshals a JSON object into a fresh T and returns
+// LoadObjectFromJSON unmarshals a JSON object into a fresh T and returns
 // a pointer to it. Any json.Unmarshal error is returned as-is.
-func LoadObjectFromJson[T any](jsonString string) (*T, error) {
+func LoadObjectFromJSON[T any](jsonString string) (*T, error) {
 	var item T
 	if err := json.Unmarshal([]byte(jsonString), &item); err != nil {
 		return nil, err
@@ -16,9 +16,9 @@ func LoadObjectFromJson[T any](jsonString string) (*T, error) {
 	return &item, nil
 }
 
-// LoadCollectionFromJson unmarshals a JSON array into a []T. Any
+// LoadCollectionFromJSON unmarshals a JSON array into a []T. Any
 // json.Unmarshal error is returned as-is.
-func LoadCollectionFromJson[T any](jsonString string) ([]T, error) {
+func LoadCollectionFromJSON[T any](jsonString string) ([]T, error) {
 	var result []T
 	if err := json.Unmarshal([]byte(jsonString), &result); err != nil {
 		return nil, err
@@ -26,10 +26,10 @@ func LoadCollectionFromJson[T any](jsonString string) ([]T, error) {
 	return result, nil
 }
 
-// LoadObjectFromJsonFile reads fileName from disk and unmarshals the
+// LoadObjectFromJSONFile reads fileName from disk and unmarshals the
 // contents into a fresh T. Read and unmarshal errors are wrapped with
 // the file name for easier diagnosis.
-func LoadObjectFromJsonFile[T any](fileName string) (*T, error) {
+func LoadObjectFromJSONFile[T any](fileName string) (*T, error) {
 	data, err := os.ReadFile(fileName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file %s: %w", fileName, err)
@@ -42,10 +42,10 @@ func LoadObjectFromJsonFile[T any](fileName string) (*T, error) {
 	return &item, nil
 }
 
-// LoadCollectionFromJsonFile reads fileName from disk and unmarshals the
+// LoadCollectionFromJSONFile reads fileName from disk and unmarshals the
 // contents into a []T. Read and unmarshal errors are wrapped with the
 // file name for easier diagnosis.
-func LoadCollectionFromJsonFile[T any](fileName string) ([]T, error) {
+func LoadCollectionFromJSONFile[T any](fileName string) ([]T, error) {
 	data, err := os.ReadFile(fileName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file %s: %w", fileName, err)
@@ -58,9 +58,9 @@ func LoadCollectionFromJsonFile[T any](fileName string) ([]T, error) {
 	return result, nil
 }
 
-// ToJson marshals entity to a JSON string. Marshal errors are wrapped
+// ToJSON marshals entity to a JSON string. Marshal errors are wrapped
 // so callers can distinguish them from downstream failures.
-func ToJson(entity interface{}) (string, error) {
+func ToJSON(entity interface{}) (string, error) {
 	b, err := json.Marshal(entity)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal interface to json: %w", err)

@@ -123,7 +123,7 @@ func (thisVal *NullDate) Scan(value interface{}) error {
 //goland:noinspection GoMixedReceiverTypes
 func (thisVal NullDate) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
-		return nullJson, nil
+		return nullJSON, nil
 	}
 	// "2006-01-02" is 10 bytes, plus the two surrounding quotes.
 	buf := make([]byte, 0, len(time.DateOnly)+2)
