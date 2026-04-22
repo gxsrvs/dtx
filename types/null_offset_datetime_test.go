@@ -103,6 +103,19 @@ func TestNullOffsetDateTime_Value(t *testing.T) {
 	}
 }
 
+// TestNullOffsetDateTime_Unix verifies that Unix() returns the
+// underlying instant in seconds since the Unix epoch for a valid
+// value, and exactly 0 for a NULL (invalid) wrapper.
+func TestNullOffsetDateTime_Unix(t *testing.T) {
+	v := NewNullOffsetDateTime(time.Date(1969, 7, 20, 20, 17, 40, 0, time.UTC))
+	if got := v.Unix(); got != -14182940 {
+		t.Errorf("Expected -14182940, got %d", got)
+	}
+	if got := NewNullOffsetDateTimeEmpty().Unix(); got != 0 {
+		t.Errorf("Expected 0 for NULL, got %d", got)
+	}
+}
+
 func TestNullOffsetDateTime_BeforeAfter(t *testing.T) {
 	a := NewNullOffsetDateTime(time.Date(1969, 7, 20, 19, 0, 0, 0, time.UTC))
 	b := time.Date(1969, 7, 20, 20, 17, 40, 0, time.UTC)

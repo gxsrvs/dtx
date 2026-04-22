@@ -21,6 +21,13 @@ that are safe for database operations and JSON serialization. Each
 not-null type shares its serializer with the nullable counterpart, so
 required and optional fields render in identical formats.
 
+More importantly, the library sharpens the data model itself: every
+optional field carries a single explicit `Valid` flag instead of the
+three-way ambiguity (`nil`, zero value, SQL `NULL`) that `*T` fields
+expose by default. DTOs read unambiguously and serialise to the same
+shape across Go, JSON, and SQL — one nullable concept, one spelling,
+one contract.
+
 ### Date and time
 
 | Not-null            | Nullable                | TZ?  | JSON format                          |
@@ -238,14 +245,14 @@ quantifies this end-to-end on a representative `Client` DTO (six
 nullable fields across two structs) and compares the two styles head
 to head:
 
-| Op / profile         |  Null (ns) |  Ptr (ns) |  Null (B/op) | Ptr (B/op) |
-| -------------------- | ---------: | --------: | -----------: | ---------: |
-| Marshal / AllValid   |       3593 |      2895 |          592 |        480 |
-| Marshal / Mixed      |       1005 |       641 |          248 |        160 |
-| Marshal / AllNull    |        377 |       302 |          128 |         64 |
-| Unmarshal / AllValid |       8028 |      5300 |         1072 |        584 |
-| Unmarshal / Mixed    |       3187 |      2761 |          632 |        424 |
-| Unmarshal / AllNull  |        705 |       678 |          328 |        264 |
+| Op / profile         |  Null (ns) |  Ptr (ns) |  Null (B/op) | Ptr (B/op) | Null (allocs/op) | Ptr (allocs/op) |
+| -------------------- | ---------: | --------: | -----------: | ---------: | ---------------: | --------------: |
+| Marshal / AllValid   |       3593 |      2895 |          592 |        480 |               14 |               5 |
+| Marshal / Mixed      |       1005 |       641 |          248 |        160 |                4 |               2 |
+| Marshal / AllNull    |        377 |       302 |          128 |         64 |                2 |               2 |
+| Unmarshal / AllValid |       8028 |      5300 |         1072 |        584 |               20 |              20 |
+| Unmarshal / Mixed    |       3187 |      2761 |          632 |        424 |               13 |              12 |
+| Unmarshal / AllNull  |        705 |       678 |          328 |        264 |                5 |               5 |
 
 (Linux / Ryzen 7 8845H, three runs each; reproduce with
 `go test ./bench/ -bench=BenchmarkClient -benchmem -run=^$`.)

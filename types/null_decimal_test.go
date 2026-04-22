@@ -76,6 +76,24 @@ func TestNullDecimal_Scan(t *testing.T) {
 	}
 }
 
+// TestNullDecimal_Value verifies the driver.Valuer contract: a valid
+// wrapper delegates to decimal.Decimal.Value and yields its canonical
+// string form, while an empty (NULL) wrapper returns (nil, nil).
+func TestNullDecimal_Value(t *testing.T) {
+	d := decimal.NewFromFloat(3.14)
+	v, err := NewNullDecimal(d).Value()
+	if err != nil {
+		t.Fatalf("Value: %v", err)
+	}
+	if s, ok := v.(string); !ok || s != "3.14" {
+		t.Errorf("Expected \"3.14\", got %v (type %T)", v, v)
+	}
+	v, err = NewNullDecimalEmpty().Value()
+	if err != nil || v != nil {
+		t.Errorf("Expected (nil, nil), got (%v, %v)", v, err)
+	}
+}
+
 func TestNullDecimal_JSON(t *testing.T) {
 	d := decimal.NewFromFloat(0.1).Add(decimal.NewFromFloat(0.2))
 	src := NewNullDecimal(d)

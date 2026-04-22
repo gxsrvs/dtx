@@ -67,19 +67,17 @@ func AssembleDateTime(
 	y, m, d := dateValue.Date()
 	hh, mm, ss, ns := timeValue.Hour(), timeValue.Minute(), timeValue.Second(), timeValue.Nanosecond()
 	if location != nil {
-		result := time.Date(
+		return new(time.Date(
 			y, m, d,
 			hh, mm, ss, ns,
 			location,
-		)
-		return &result
+		))
 	}
-	result := time.Date(
+	return new(time.Date(
 		y, m, d,
 		hh, mm, ss, ns,
 		timeValue.Location(),
-	)
-	return &result
+	))
 }
 
 // AssembleDateTimeTZ combines dateValue and timeValue and resolves the

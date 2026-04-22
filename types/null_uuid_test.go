@@ -83,6 +83,25 @@ func TestNullUuid_Scan(t *testing.T) {
 	}
 }
 
+// TestNullUuid_Value verifies the driver.Valuer contract: a valid
+// wrapper delegates to uuid.UUID.Value and yields the canonical
+// 8-4-4-4-12 hex string, while an empty (NULL) wrapper returns
+// (nil, nil).
+func TestNullUuid_Value(t *testing.T) {
+	u, _ := uuid.Parse(sampleUuid)
+	v, err := NewNullUuid(u).Value()
+	if err != nil {
+		t.Fatalf("Value: %v", err)
+	}
+	if s, ok := v.(string); !ok || s != sampleUuid {
+		t.Errorf("Expected %q, got %v (type %T)", sampleUuid, v, v)
+	}
+	v, err = NewNullUuidEmpty().Value()
+	if err != nil || v != nil {
+		t.Errorf("Expected (nil, nil), got (%v, %v)", v, err)
+	}
+}
+
 func TestNullUuid_JSON(t *testing.T) {
 	u, _ := uuid.Parse(sampleUuid)
 	data, _ := json.Marshal(NewNullUuid(u))

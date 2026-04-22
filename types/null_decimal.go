@@ -2,6 +2,7 @@ package types
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"strings"
 
@@ -80,6 +81,18 @@ func MulNullDecimals(val1, val2 NullDecimal) NullDecimal {
 		return NewNullDecimalEmpty()
 	}
 	return NewNullDecimal(val1.Val.Mul(val2.Val))
+}
+
+// Value implements the database/sql/driver.Valuer interface. A NULL
+// value is emitted as (nil, nil); the valid case delegates to
+// decimal.Decimal.Value so full precision is preserved on the wire.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (thisVal NullDecimal) Value() (driver.Value, error) {
+	if !thisVal.Valid {
+		return nil, nil
+	}
+	return thisVal.Val.Value()
 }
 
 // Scan implements the database/sql.Scanner interface. The decimal is

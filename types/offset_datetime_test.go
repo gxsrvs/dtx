@@ -105,6 +105,20 @@ func TestOffsetDateTime_ToString(t *testing.T) {
 	}
 }
 
+// TestOffsetDateTime_Unix verifies that Unix() returns the underlying
+// instant as seconds since the Unix epoch, including negative values
+// for pre-1970 timestamps and exactly zero at the epoch itself.
+func TestOffsetDateTime_Unix(t *testing.T) {
+	v := NewOffsetDateTime(time.Date(1969, 7, 20, 20, 17, 40, 0, time.UTC))
+	if got := v.Unix(); got != -14182940 {
+		t.Errorf("Expected -14182940, got %d", got)
+	}
+	epoch := NewOffsetDateTime(time.Unix(0, 0).UTC())
+	if got := epoch.Unix(); got != 0 {
+		t.Errorf("Expected 0 at Unix epoch, got %d", got)
+	}
+}
+
 func TestOffsetDateTimeBeforeAfter(t *testing.T) {
 	a := NewOffsetDateTime(time.Date(1969, 7, 20, 19, 0, 0, 0, time.UTC))
 	b := time.Date(1969, 7, 20, 20, 17, 40, 0, time.UTC)

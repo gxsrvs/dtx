@@ -136,3 +136,13 @@ func (thisVal NullOffsetDateTime) Before(dt time.Time) bool {
 func (thisVal NullOffsetDateTime) After(dt time.Time) bool {
 	return thisVal.Valid && thisVal.Val.After(dt)
 }
+
+// Unix returns the underlying instant as a Unix timestamp — the number
+// of seconds elapsed since January 1, 1970 UTC. An invalid (NULL) value
+// returns 0.
+func (thisVal NullOffsetDateTime) Unix() int64 {
+	if !thisVal.Valid {
+		return 0
+	}
+	return thisVal.Val.Unix()
+}

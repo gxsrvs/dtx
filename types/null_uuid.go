@@ -2,6 +2,7 @@ package types
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"strings"
 
@@ -71,6 +72,19 @@ func NullUuidFromString(strValue *string) NullUuid {
 		return NewNullUuidEmpty()
 	}
 	return NewNullUuid(result)
+}
+
+// Value implements the database/sql/driver.Valuer interface. A NULL
+// value is emitted as (nil, nil); the valid case delegates to
+// uuid.UUID.Value, which renders the UUID as its canonical
+// 8-4-4-4-12 hex string.
+//
+//goland:noinspection GoMixedReceiverTypes
+func (thisVal NullUuid) Value() (driver.Value, error) {
+	if !thisVal.Valid {
+		return nil, nil
+	}
+	return thisVal.Val.Value()
 }
 
 // Scan implements the database/sql.Scanner interface. The UUID is

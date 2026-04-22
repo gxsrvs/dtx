@@ -98,3 +98,9 @@ func (thisVal OffsetDateTime) Before(dt time.Time) bool {
 func (thisVal OffsetDateTime) After(dt time.Time) bool {
 	return time.Time(thisVal).After(dt)
 }
+
+// Unix returns the underlying instant as a Unix timestamp — the number
+// of seconds elapsed since January 1, 1970 UTC.
+func (thisVal OffsetDateTime) Unix() int64 {
+	return time.Time(thisVal).Unix()
+}
