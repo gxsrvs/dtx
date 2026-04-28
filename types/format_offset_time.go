@@ -63,13 +63,17 @@ func ParseTimeFromString(strValue string) (*time.Time, error) {
 }
 
 // ParseTimezoneExtended attempts to extract a trailing timezone designator
-// from strValue. Supported forms are "+HH:MM" / "-HH:MM" (six chars) and
-// "+HHMM" / "-HHMM" (five chars). When a designator is found it is removed
-// from the returned string and represented as a *time.Location; otherwise
-// time.Local is returned.
+// from strValue. Supported forms are "Z" (RFC 3339 UTC literal),
+// "+HH:MM" / "-HH:MM" (six chars) and "+HHMM" / "-HHMM" (five chars). When
+// a designator is found it is removed from the returned string and
+// represented as a *time.Location; otherwise time.Local is returned.
 func ParseTimezoneExtended(strValue string) (*time.Location, string, error) {
 	loc := time.Local
 	s := strValue
+
+	if len(s) >= 1 && s[len(s)-1] == 'Z' {
+		return time.UTC, s[:len(s)-1], nil
+	}
 
 	if len(s) >= 6 {
 		tzCandidate := s[len(s)-6:]

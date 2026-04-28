@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-04-28
+
+### Fixed
+
+- `OffsetDateTime`, `OffsetTime` and their nullable variants now parse
+  the RFC 3339 `Z` suffix on `UnmarshalJSON` / `*FromString`. Before
+  this fix only `±HH:MM` and `±HHMM` designators were recognised, so
+  any input like `"2024-07-11T04:37:00Z"` or
+  `"2024-07-11T04:37:00.123Z"` failed with
+  `cannot parse time from …Z`. The library has always **emitted** the
+  `Z` form for UTC values via `time.Format("…Z07:00")`, which broke
+  the `Marshal → Unmarshal` round-trip for any UTC datetime. The fix
+  is in `ParseTimezoneExtended`: a trailing `Z` is now stripped and
+  treated as `time.UTC`.
+
 ## [0.2.0] — 2026-04-22
 
 ### Changed
@@ -63,7 +78,8 @@ over the consumer codebase will migrate callers.
 
 Initial public release.
 
-[Unreleased]: https://github.com/gxsrvs/dtx/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/gxsrvs/dtx/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/gxsrvs/dtx/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/gxsrvs/dtx/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/gxsrvs/dtx/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/gxsrvs/dtx/releases/tag/v0.1.0

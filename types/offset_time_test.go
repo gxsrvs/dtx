@@ -89,6 +89,49 @@ func TestOffsetTimeUnmarshalRejectsNull(t *testing.T) {
 	}
 }
 
+func TestOffsetTime_UnmarshalZSuffix(t *testing.T) {
+	cases := []struct {
+		in       string
+		wantSec  int
+		wantNsec int
+	}{
+		{`"04:37:00Z"`, 0, 0},
+		{`"04:37:00.000Z"`, 0, 0},
+		{`"04:37:00.5Z"`, 0, 500_000_000},
+		{`"04:37:42.123456789Z"`, 42, 123456789},
+	}
+	for _, c := range cases {
+		var v OffsetTime
+		if err := json.Unmarshal([]byte(c.in), &v); err != nil {
+			t.Errorf("input %s: %v", c.in, err)
+			continue
+		}
+		got := v.AsTime()
+		if got.Hour() != 4 || got.Minute() != 37 ||
+			got.Second() != c.wantSec || got.Nanosecond() != c.wantNsec {
+			t.Errorf("input %s: got %v", c.in, got)
+		}
+		if got.Location() != time.UTC {
+			t.Errorf("input %s: expected UTC, got %v", c.in, got.Location())
+		}
+	}
+}
+
+func TestOffsetTime_UTCRoundTrip(t *testing.T) {
+	src := NewOffsetTime(time.Date(0, 1, 1, 4, 37, 0, 123_000_000, time.UTC))
+	data, err := json.Marshal(src)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	var dst OffsetTime
+	if err := json.Unmarshal(data, &dst); err != nil {
+		t.Fatalf("unmarshal %s: %v", data, err)
+	}
+	if !dst.AsTime().Equal(src.AsTime()) {
+		t.Errorf("round-trip mismatch: %v != %v", dst.AsTime(), src.AsTime())
+	}
+}
+
 func TestOffsetTimeValueScan(t *testing.T) {
 	src := time.Date(0, 1, 1, 20, 17, 40, 0, time.UTC)
 	o := NewOffsetTime(src)

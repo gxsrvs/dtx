@@ -143,3 +143,20 @@ func TestNullOffsetTimeScan(t *testing.T) {
 		t.Error("Expected invalid after Scan(nil)")
 	}
 }
+
+func TestNullOffsetTime_UnmarshalZSuffix(t *testing.T) {
+	var v NullOffsetTime
+	if err := json.Unmarshal([]byte(`"04:37:00.123Z"`), &v); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if !v.Valid {
+		t.Fatal("Expected valid")
+	}
+	if v.Val.Hour() != 4 || v.Val.Minute() != 37 || v.Val.Second() != 0 ||
+		v.Val.Nanosecond() != 123_000_000 {
+		t.Errorf("Unexpected value: %v", v.Val)
+	}
+	if v.Val.Location() != time.UTC {
+		t.Errorf("Expected UTC, got %v", v.Val.Location())
+	}
+}

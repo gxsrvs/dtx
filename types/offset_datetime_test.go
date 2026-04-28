@@ -119,6 +119,51 @@ func TestOffsetDateTime_Unix(t *testing.T) {
 	}
 }
 
+func TestOffsetDateTime_UnmarshalZSuffix(t *testing.T) {
+	cases := []struct {
+		in       string
+		wantSec  int
+		wantNsec int
+	}{
+		{`"2024-07-11T04:37:00Z"`, 0, 0},
+		{`"2024-07-11T04:37:00.000Z"`, 0, 0},
+		{`"2024-07-11T04:37:00.5Z"`, 0, 500_000_000},
+		{`"2024-07-11T04:37:00.123456789Z"`, 0, 123456789},
+		{`"2024-07-11T04:37:42Z"`, 42, 0},
+	}
+	for _, c := range cases {
+		var v OffsetDateTime
+		if err := json.Unmarshal([]byte(c.in), &v); err != nil {
+			t.Errorf("input %s: %v", c.in, err)
+			continue
+		}
+		got := v.AsTime()
+		if got.Year() != 2024 || got.Month() != 7 || got.Day() != 11 ||
+			got.Hour() != 4 || got.Minute() != 37 ||
+			got.Second() != c.wantSec || got.Nanosecond() != c.wantNsec {
+			t.Errorf("input %s: got %v", c.in, got)
+		}
+		if got.Location() != time.UTC {
+			t.Errorf("input %s: expected UTC, got %v", c.in, got.Location())
+		}
+	}
+}
+
+func TestOffsetDateTime_UTCRoundTrip(t *testing.T) {
+	src := NewOffsetDateTime(time.Date(2024, 7, 11, 4, 37, 0, 123_000_000, time.UTC))
+	data, err := json.Marshal(src)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	var dst OffsetDateTime
+	if err := json.Unmarshal(data, &dst); err != nil {
+		t.Fatalf("unmarshal %s: %v", data, err)
+	}
+	if !dst.AsTime().Equal(src.AsTime()) {
+		t.Errorf("round-trip mismatch: %v != %v", dst.AsTime(), src.AsTime())
+	}
+}
+
 func TestOffsetDateTimeBeforeAfter(t *testing.T) {
 	a := NewOffsetDateTime(time.Date(1969, 7, 20, 19, 0, 0, 0, time.UTC))
 	b := time.Date(1969, 7, 20, 20, 17, 40, 0, time.UTC)
