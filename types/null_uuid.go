@@ -34,8 +34,6 @@ func NewNullUUIDEmpty() NullUUID {
 }
 
 // IsEmpty reports whether the value is NULL (Valid == false).
-//
-//goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullUUID) IsEmpty() bool {
 	return !thisVal.Valid
 }
@@ -43,15 +41,13 @@ func (thisVal *NullUUID) IsEmpty() bool {
 // IsZero reports whether the value is NULL (Valid == false). Mirroring
 // time.Time.IsZero, this also enables encoding/json's `omitzero` tag
 // (Go 1.24+) to elide invalid wrappers from marshalled output.
-//
-//goland:noinspection GoMixedReceiverTypes
 func (thisVal NullUUID) IsZero() bool {
 	return !thisVal.Valid
 }
 
 // ToString renders the UUID in canonical 8-4-4-4-12 hex form, or ""
 // when NULL.
-func (thisVal *NullUUID) ToString() string {
+func (thisVal NullUUID) ToString() string {
 	if !thisVal.Valid {
 		return ""
 	}
@@ -78,8 +74,6 @@ func NullUUIDFromString(strValue *string) NullUUID {
 // value is emitted as (nil, nil); the valid case delegates to
 // uuid.UUID.Value, which renders the UUID as its canonical
 // 8-4-4-4-12 hex string.
-//
-//goland:noinspection GoMixedReceiverTypes
 func (thisVal NullUUID) Value() (driver.Value, error) {
 	if !thisVal.Valid {
 		return nil, nil
@@ -90,8 +84,6 @@ func (thisVal NullUUID) Value() (driver.Value, error) {
 // Scan implements the database/sql.Scanner interface. The UUID is
 // received as text from the driver (via sql.NullString) and parsed
 // through NullUUIDFromString.
-//
-//goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullUUID) Scan(value interface{}) error {
 	var s sql.NullString
 	if err := s.Scan(value); err != nil {
@@ -107,8 +99,6 @@ func (thisVal *NullUUID) Scan(value interface{}) error {
 
 // MarshalJSON renders the value as a JSON string in canonical UUID
 // form, or null when empty.
-//
-//goland:noinspection GoMixedReceiverTypes
 func (thisVal NullUUID) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
 		return nullJSON, nil
@@ -118,8 +108,6 @@ func (thisVal NullUUID) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON parses a JSON string containing a UUID, or the token
 // null. Any other input is treated as a parse error.
-//
-//goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullUUID) UnmarshalJSON(data []byte) error {
 	sd := string(data)
 	if sd == "null" || sd == "" {

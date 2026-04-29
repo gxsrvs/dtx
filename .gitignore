@@ -1,7 +1,7 @@
 /pkg/
 /logs/
 /vendor/
-/.idea/
+/.idea/*
 /.ai/
 /.claude/
 CLAUDE.md

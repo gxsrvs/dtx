@@ -151,8 +151,8 @@ func TestAssembleNullDateTimeTZ(t *testing.T) {
 	dateVal := time.Date(1961, 4, 12, 0, 0, 0, 0, time.UTC)
 	timeVal := time.Date(0, 1, 1, 9, 7, 0, 0, time.UTC)
 
-	nd := NewNullDate(dateVal)
-	nt := NewNullOffsetTime(timeVal)
+	nd := NullDateFromTime(dateVal)
+	nt := NullOffsetTimeFromTime(timeVal)
 
 	tz := "+03:00"
 	res, err := AssembleNullDateTimeTZ(&nd, nil, &nt, nil, tz)

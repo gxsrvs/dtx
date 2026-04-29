@@ -11,7 +11,8 @@ func TestNullOffsetTimeFromString(t *testing.T) {
 	if !nt.Valid {
 		t.Error("Expected valid NullOffsetTime from valid string")
 	}
-	if nt.Val.Hour() != 20 || nt.Val.Minute() != 17 || nt.Val.Second() != 40 {
+	v := nt.Val.AsTime()
+	if v.Hour() != 20 || v.Minute() != 17 || v.Second() != 40 {
 		t.Errorf("Unexpected time value: %v", nt.Val)
 	}
 
@@ -27,7 +28,7 @@ func TestNullOffsetTimeFromString(t *testing.T) {
 }
 
 func TestNullOffsetTimeRoundTripWithTZ(t *testing.T) {
-	src := NewNullOffsetTime(
+	src := NullOffsetTimeFromTime(
 		time.Date(0, 1, 1, 20, 17, 40, 0, time.FixedZone("UTC+03:00", 3*3600)),
 	)
 	data, err := json.Marshal(src)
@@ -45,13 +46,13 @@ func TestNullOffsetTimeRoundTripWithTZ(t *testing.T) {
 	if !dst.Valid {
 		t.Fatal("Expected valid after round-trip")
 	}
-	if !dst.Val.Equal(src.Val) {
+	if !dst.Val.AsTime().Equal(src.Val.AsTime()) {
 		t.Errorf("Round-trip mismatch: %v != %v", dst.Val, src.Val)
 	}
 }
 
 func TestNullOffsetTimeMarshalUTC(t *testing.T) {
-	v := NewNullOffsetTime(time.Date(0, 1, 1, 20, 17, 40, 0, time.UTC))
+	v := NullOffsetTimeFromTime(time.Date(0, 1, 1, 20, 17, 40, 0, time.UTC))
 	data, err := json.Marshal(v)
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
@@ -62,7 +63,7 @@ func TestNullOffsetTimeMarshalUTC(t *testing.T) {
 }
 
 func TestNullOffsetTimeToString(t *testing.T) {
-	v := NewNullOffsetTime(time.Date(0, 1, 1, 20, 17, 40, 0, time.UTC))
+	v := NullOffsetTimeFromTime(time.Date(0, 1, 1, 20, 17, 40, 0, time.UTC))
 	if got := v.ToString(); got != "20:17:40Z" {
 		t.Errorf("Expected 20:17:40Z, got %q", got)
 	}
@@ -94,7 +95,7 @@ func TestNullOffsetTimeUnmarshalNull(t *testing.T) {
 }
 
 func TestNullOffsetTime_IsEmpty(t *testing.T) {
-	v := NewNullOffsetTime(time.Date(0, 1, 1, 20, 17, 0, 0, time.UTC))
+	v := NullOffsetTimeFromTime(time.Date(0, 1, 1, 20, 17, 0, 0, time.UTC))
 	if v.IsEmpty() {
 		t.Error("Expected IsEmpty=false for valid NullOffsetTime")
 	}
@@ -106,7 +107,7 @@ func TestNullOffsetTime_IsEmpty(t *testing.T) {
 
 func TestNullOffsetTime_Value(t *testing.T) {
 	src := time.Date(0, 1, 1, 20, 17, 40, 0, time.UTC)
-	v, err := NewNullOffsetTime(src).Value()
+	v, err := NullOffsetTimeFromTime(src).Value()
 	if err != nil {
 		t.Fatalf("Value: %v", err)
 	}
@@ -131,7 +132,7 @@ func TestNullOffsetTimeScan(t *testing.T) {
 	if err := v.Scan(src); err != nil {
 		t.Fatalf("Scan: %v", err)
 	}
-	if !v.Valid || !v.Val.Equal(src) {
+	if !v.Valid || !v.Val.AsTime().Equal(src) {
 		t.Errorf("Round-trip mismatch: %#v vs %v", v, src)
 	}
 
@@ -152,11 +153,35 @@ func TestNullOffsetTime_UnmarshalZSuffix(t *testing.T) {
 	if !v.Valid {
 		t.Fatal("Expected valid")
 	}
-	if v.Val.Hour() != 4 || v.Val.Minute() != 37 || v.Val.Second() != 0 ||
-		v.Val.Nanosecond() != 123_000_000 {
+	got := v.Val.AsTime()
+	if got.Hour() != 4 || got.Minute() != 37 || got.Second() != 0 ||
+		got.Nanosecond() != 123_000_000 {
 		t.Errorf("Unexpected value: %v", v.Val)
 	}
-	if v.Val.Location() != time.UTC {
-		t.Errorf("Expected UTC, got %v", v.Val.Location())
+	if got.Location() != time.UTC {
+		t.Errorf("Expected UTC, got %v", got.Location())
+	}
+}
+
+func TestNullOffsetTime_In(t *testing.T) {
+	plus4 := time.FixedZone("UTC+04:00", 4*3600)
+
+	v := NullOffsetTimeFromTime(time.Date(0, 1, 1, 10, 0, 0, 0, plus4))
+	if got := v.In(time.UTC).ToString(); got != "06:00:00Z" {
+		t.Errorf("valid plus4 -> UTC: got %q", got)
+	}
+
+	empty := NewNullOffsetTimeEmpty()
+	got := empty.In(time.UTC)
+	if got.Valid {
+		t.Error("Expected NULL to propagate through In()")
+	}
+}
+
+func TestNewNullOffsetTime(t *testing.T) {
+	ot := NewOffsetTime(time.Date(0, 1, 1, 12, 0, 0, 0, time.UTC))
+	v := NewNullOffsetTime(ot)
+	if !v.Valid || !v.Val.Equal(ot) {
+		t.Errorf("Expected (OffsetTime, Valid), got %+v", v)
 	}
 }

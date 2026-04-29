@@ -42,8 +42,6 @@ func NullBoolFromString(strValue *string) NullBool {
 }
 
 // IsEmpty reports whether the value is NULL (Valid == false).
-//
-//goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullBool) IsEmpty() bool {
 	return !thisVal.Valid
 }
@@ -51,16 +49,12 @@ func (thisVal *NullBool) IsEmpty() bool {
 // IsZero reports whether the value is NULL (Valid == false). Mirroring
 // time.Time.IsZero, this also enables encoding/json's `omitzero` tag
 // (Go 1.24+) to elide invalid wrappers from marshalled output.
-//
-//goland:noinspection GoMixedReceiverTypes
 func (thisVal NullBool) IsZero() bool {
 	return !thisVal.Valid
 }
 
 // ToString renders the value as "true"/"false", or "" when NULL.
-//
-//goland:noinspection GoMixedReceiverTypes
-func (thisVal *NullBool) ToString() string {
+func (thisVal NullBool) ToString() string {
 	if !thisVal.Valid {
 		return ""
 	}
@@ -69,8 +63,6 @@ func (thisVal *NullBool) ToString() string {
 
 // Value implements the database/sql/driver.Valuer interface. A NULL value
 // is emitted as (nil, nil).
-//
-//goland:noinspection GoMixedReceiverTypes
 func (thisVal NullBool) Value() (driver.Value, error) {
 	if !thisVal.Valid {
 		return nil, nil
@@ -80,8 +72,6 @@ func (thisVal NullBool) Value() (driver.Value, error) {
 
 // Scan implements the database/sql.Scanner interface, delegating to
 // sql.NullBool so that the driver's NULL signalling is honoured.
-//
-//goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullBool) Scan(value interface{}) error {
 	var s sql.NullBool
 	if err := s.Scan(value); err != nil {
@@ -99,8 +89,6 @@ func (thisVal *NullBool) Scan(value interface{}) error {
 // The valid path returns a shared literal slice ("true"/"false") to
 // skip the reflection dispatch and allocation that json.Marshal does
 // for the primitive bool type.
-//
-//goland:noinspection GoMixedReceiverTypes
 func (thisVal NullBool) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
 		return nullJSON, nil
@@ -113,8 +101,6 @@ func (thisVal NullBool) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON parses a JSON boolean or the token null. Any other input
 // is treated as a parse error.
-//
-//goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullBool) UnmarshalJSON(data []byte) error {
 	sd := string(data)
 	if sd == "null" || sd == "" {

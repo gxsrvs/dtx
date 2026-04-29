@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"testing"
+	"time"
 )
 
 func TestNullLocalTimeFromString(t *testing.T) {
@@ -122,5 +123,16 @@ func TestNullLocalTimeValueScan(t *testing.T) {
 	}
 	if nullDst.Valid {
 		t.Error("Expected invalid after Scan(nil)")
+	}
+}
+
+func TestNullLocalTimeFromTime(t *testing.T) {
+	src := time.Date(2024, 7, 11, 10, 30, 45, 0, time.UTC)
+	v := NullLocalTimeFromTime(src)
+	if !v.Valid {
+		t.Fatal("Expected valid NullLocalTime")
+	}
+	if v.Val.Hour != 10 || v.Val.Minute != 30 || v.Val.Second != 45 {
+		t.Errorf("Unexpected fields: %+v", v.Val)
 	}
 }

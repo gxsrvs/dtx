@@ -115,13 +115,13 @@ func TestScanTransitionValidToNull(t *testing.T) {
 		if err := v.Scan(src); err != nil {
 			t.Fatal(err)
 		}
-		if !v.Valid || !v.Val.Equal(src) {
+		if !v.Valid || !v.Val.AsTime().Equal(src) {
 			t.Fatalf("first scan: %+v", v)
 		}
 		if err := v.Scan(nil); err != nil {
 			t.Fatal(err)
 		}
-		if v.Valid || !v.Val.IsZero() {
+		if v.Valid || !v.Val.AsTime().IsZero() {
 			t.Errorf("after Scan(nil): expected zero+invalid, got %+v", v)
 		}
 	})

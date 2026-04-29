@@ -164,9 +164,28 @@ func TestOffsetDateTime_UTCRoundTrip(t *testing.T) {
 	}
 }
 
+func TestOffsetDateTime_In(t *testing.T) {
+	plus4 := time.FixedZone("UTC+04:00", 4*3600)
+
+	src := NewOffsetDateTime(time.Date(2024, 7, 11, 10, 0, 0, 0, plus4))
+	utc := src.In(time.UTC)
+	if got := utc.ToString(); got != "2024-07-11T06:00:00Z" {
+		t.Errorf("plus4 -> UTC: expected '2024-07-11T06:00:00Z', got %q", got)
+	}
+
+	back := utc.In(plus4)
+	if got := back.ToString(); got != "2024-07-11T10:00:00+04:00" {
+		t.Errorf("UTC -> plus4: expected '2024-07-11T10:00:00+04:00', got %q", got)
+	}
+
+	if !src.AsTime().Equal(utc.AsTime()) || !utc.AsTime().Equal(back.AsTime()) {
+		t.Error("In() must preserve the absolute instant")
+	}
+}
+
 func TestOffsetDateTimeBeforeAfter(t *testing.T) {
 	a := NewOffsetDateTime(time.Date(1969, 7, 20, 19, 0, 0, 0, time.UTC))
-	b := time.Date(1969, 7, 20, 20, 17, 40, 0, time.UTC)
+	b := NewOffsetDateTime(time.Date(1969, 7, 20, 20, 17, 40, 0, time.UTC))
 	if !a.Before(b) {
 		t.Error("Expected a.Before(b) to be true")
 	}

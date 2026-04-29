@@ -28,6 +28,8 @@ func TestIsEmpty(t *testing.T) {
 		{"sql.NullInt64 valid", sql.NullInt64{Int64: 1, Valid: true}, false},
 		{"sql.NullBool invalid", sql.NullBool{Valid: false}, true},
 		{"sql.NullTime invalid", sql.NullTime{Valid: false}, true},
+		{"sql.NullByte invalid", sql.NullByte{Valid: false}, true},
+		{"sql.NullByte valid", sql.NullByte{Byte: 0x42, Valid: true}, false},
 
 		{"NullString empty", NewNullStringEmpty(), true},
 		{"NullString valid", NewNullString("x"), false},
@@ -44,7 +46,7 @@ func TestIsEmpty(t *testing.T) {
 		{"NullLocalTime empty", NewNullLocalTimeEmpty(), true},
 
 		{"*NullString empty", ptr(NewNullStringEmpty()), true},
-		{"*NullDate valid", ptr(NewNullDate(time.Now())), false},
+		{"*NullDate valid", ptr(NullDateFromTime(time.Now())), false},
 		{"*NullOffsetTime empty", ptr(NewNullOffsetTimeEmpty()), true},
 
 		{"unknown type fallback", time.Time{}, false},

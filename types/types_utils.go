@@ -111,14 +111,16 @@ func AssembleNullDateTimeTZ(
 ) (*time.Time, error) {
 	var dateVal *time.Time
 	if dateValue.Valid {
-		dateVal = &dateValue.Val
+		t := time.Time(dateValue.Val)
+		dateVal = &t
 	} else {
 		dateVal = defaultDate
 	}
 
 	var timeVal *time.Time
 	if timeValue.Valid {
-		timeVal = &timeValue.Val
+		t := time.Time(timeValue.Val)
+		timeVal = &t
 	} else {
 		timeVal = defaultTime
 	}

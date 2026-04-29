@@ -34,8 +34,6 @@ func NewNullDecimalEmpty() NullDecimal {
 }
 
 // IsEmpty reports whether the value is NULL (Valid == false).
-//
-//goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullDecimal) IsEmpty() bool {
 	return !thisVal.Valid
 }
@@ -43,15 +41,13 @@ func (thisVal *NullDecimal) IsEmpty() bool {
 // IsZero reports whether the value is NULL (Valid == false). Mirroring
 // time.Time.IsZero, this also enables encoding/json's `omitzero` tag
 // (Go 1.24+) to elide invalid wrappers from marshalled output.
-//
-//goland:noinspection GoMixedReceiverTypes
 func (thisVal NullDecimal) IsZero() bool {
 	return !thisVal.Valid
 }
 
 // ToString renders the decimal via decimal.Decimal.String (no trailing
 // zeros), or "" when NULL.
-func (thisVal *NullDecimal) ToString() string {
+func (thisVal NullDecimal) ToString() string {
 	if !thisVal.Valid {
 		return ""
 	}
@@ -86,8 +82,6 @@ func MulNullDecimals(val1, val2 NullDecimal) NullDecimal {
 // Value implements the database/sql/driver.Valuer interface. A NULL
 // value is emitted as (nil, nil); the valid case delegates to
 // decimal.Decimal.Value so full precision is preserved on the wire.
-//
-//goland:noinspection GoMixedReceiverTypes
 func (thisVal NullDecimal) Value() (driver.Value, error) {
 	if !thisVal.Valid {
 		return nil, nil
@@ -98,8 +92,6 @@ func (thisVal NullDecimal) Value() (driver.Value, error) {
 // Scan implements the database/sql.Scanner interface. The decimal is
 // received as text from the driver (via sql.NullString) and parsed
 // through NullDecimalFromString so precision is preserved.
-//
-//goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullDecimal) Scan(value interface{}) error {
 	var s sql.NullString
 	if err := s.Scan(value); err != nil {
@@ -115,8 +107,6 @@ func (thisVal *NullDecimal) Scan(value interface{}) error {
 
 // MarshalJSON renders the value as a JSON number (the format
 // decimal.Decimal itself emits), or null when empty.
-//
-//goland:noinspection GoMixedReceiverTypes
 func (thisVal NullDecimal) MarshalJSON() ([]byte, error) {
 	if !thisVal.Valid {
 		return nullJSON, nil
@@ -126,8 +116,6 @@ func (thisVal NullDecimal) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON parses a JSON number, JSON string, or the token null.
 // Any other input is treated as a parse error.
-//
-//goland:noinspection GoMixedReceiverTypes
 func (thisVal *NullDecimal) UnmarshalJSON(data []byte) error {
 	sd := string(data)
 	if sd == "null" || sd == "" {

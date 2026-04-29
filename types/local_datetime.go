@@ -15,6 +15,10 @@ import (
 // human's wall-clock time (e.g. "contract signed on 2026-04-18 at 13:00")
 // where the offset is intentionally absent. For points in time with a known
 // offset, use OffsetDateTime instead.
+//
+// In(loc) and UTC() are not provided by design: LocalDateTime carries no
+// timezone, so zone reinterpretation is meaningless. Use ToTime(loc) to
+// materialise a time.Time in a chosen zone.
 type LocalDateTime struct {
 	Year    int
 	Month   time.Month
@@ -120,4 +124,57 @@ func (thisVal *LocalDateTime) UnmarshalJSON(data []byte) error {
 	}
 	*thisVal = parsed
 	return nil
+}
+
+// Before reports whether thisVal precedes other. Comparison operates
+// on wall-clock components (year/month/.../nanosec) since LocalDateTime
+// carries no timezone.
+func (thisVal LocalDateTime) Before(other LocalDateTime) bool {
+	return thisVal.ToTime(time.UTC).Before(other.ToTime(time.UTC))
+}
+
+// After reports whether thisVal is after other.
+func (thisVal LocalDateTime) After(other LocalDateTime) bool {
+	return thisVal.ToTime(time.UTC).After(other.ToTime(time.UTC))
+}
+
+// Equal reports whether thisVal and other have identical wall-clock
+// components.
+func (thisVal LocalDateTime) Equal(other LocalDateTime) bool {
+	return thisVal == other
+}
+
+// Compare returns -1, 0, or +1 as thisVal is before, equal to, or
+// after other.
+func (thisVal LocalDateTime) Compare(other LocalDateTime) int {
+	return thisVal.ToTime(time.UTC).Compare(other.ToTime(time.UTC))
+}
+
+// Add returns thisVal shifted by d on the wall-clock components.
+func (thisVal LocalDateTime) Add(d time.Duration) LocalDateTime {
+	return LocalDateTimeFromTime(thisVal.ToTime(time.UTC).Add(d))
+}
+
+// AddDate returns thisVal with the given years/months/days added.
+func (thisVal LocalDateTime) AddDate(years, months, days int) LocalDateTime {
+	return LocalDateTimeFromTime(thisVal.ToTime(time.UTC).AddDate(years, months, days))
+}
+
+// Sub returns thisVal − other as a time.Duration on the wall-clock
+// components.
+func (thisVal LocalDateTime) Sub(other LocalDateTime) time.Duration {
+	return thisVal.ToTime(time.UTC).Sub(other.ToTime(time.UTC))
+}
+
+// Truncate returns thisVal rounded down to the nearest multiple of d
+// since the zero time.
+func (thisVal LocalDateTime) Truncate(d time.Duration) LocalDateTime {
+	return LocalDateTimeFromTime(thisVal.ToTime(time.UTC).Truncate(d))
+}
+
+// YearDay returns the day-of-year (1-365 / 1-366 in leap years).
+// Year/Month/Day/Hour/Minute/Second/Nanosec are exposed as struct
+// fields directly.
+func (thisVal LocalDateTime) YearDay() int {
+	return thisVal.ToTime(time.UTC).YearDay()
 }

@@ -13,6 +13,10 @@ import (
 //
 // Use LocalTime for values like "shop opens at 09:00" — a time-of-day with
 // no offset. For points in time with a known offset, use OffsetTime instead.
+//
+// In(loc) and UTC() are not provided by design: LocalTime carries no
+// timezone, so zone reinterpretation is meaningless. Use ToTime() to
+// materialise a time.Time on the zero date in UTC.
 type LocalTime struct {
 	Hour    int
 	Minute  int
@@ -113,4 +117,49 @@ func (thisVal *LocalTime) UnmarshalJSON(data []byte) error {
 	}
 	*thisVal = parsed
 	return nil
+}
+
+// Before reports whether thisVal precedes other. Comparison operates
+// on wall-clock components (hour/minute/second/nanosec) since
+// LocalTime carries no timezone.
+func (thisVal LocalTime) Before(other LocalTime) bool {
+	return thisVal.ToTime().Before(other.ToTime())
+}
+
+// After reports whether thisVal is after other.
+func (thisVal LocalTime) After(other LocalTime) bool {
+	return thisVal.ToTime().After(other.ToTime())
+}
+
+// Equal reports whether thisVal and other have identical wall-clock
+// components.
+func (thisVal LocalTime) Equal(other LocalTime) bool {
+	return thisVal == other
+}
+
+// Compare returns -1, 0, or +1 as thisVal is before, equal to, or
+// after other.
+func (thisVal LocalTime) Compare(other LocalTime) int {
+	return thisVal.ToTime().Compare(other.ToTime())
+}
+
+// Add returns thisVal shifted by d. No modulo-24h enforcement: a
+// duration that crosses midnight rotates the implicit date in the
+// underlying time.Time, but the date is not part of LocalTime's
+// serialised form. Consume with care.
+func (thisVal LocalTime) Add(d time.Duration) LocalTime {
+	return LocalTimeFromTime(thisVal.ToTime().Add(d))
+}
+
+// Sub returns thisVal − other as a time.Duration. The implicit dates
+// participate in the calculation; for same-day pairs the result is
+// sub-24h.
+func (thisVal LocalTime) Sub(other LocalTime) time.Duration {
+	return thisVal.ToTime().Sub(other.ToTime())
+}
+
+// Truncate returns thisVal rounded down to the nearest multiple of d
+// since the zero time.
+func (thisVal LocalTime) Truncate(d time.Duration) LocalTime {
+	return LocalTimeFromTime(thisVal.ToTime().Truncate(d))
 }

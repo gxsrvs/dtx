@@ -11,8 +11,9 @@ func TestNullOffsetDateTimeFromString(t *testing.T) {
 	if !ndt.Valid {
 		t.Error("Expected valid NullOffsetDateTime from valid string")
 	}
-	if ndt.Val.Year() != 1961 || ndt.Val.Month() != 4 || ndt.Val.Day() != 12 ||
-		ndt.Val.Hour() != 9 || ndt.Val.Minute() != 7 || ndt.Val.Second() != 0 {
+	v := ndt.Val.AsTime()
+	if v.Year() != 1961 || v.Month() != 4 || v.Day() != 12 ||
+		v.Hour() != 9 || v.Minute() != 7 || v.Second() != 0 {
 		t.Errorf("Unexpected datetime value: %v", ndt.Val)
 	}
 
@@ -27,7 +28,7 @@ func TestNullOffsetDateTimeFromString(t *testing.T) {
 }
 
 func TestNullOffsetDateTimeRoundTripJSON(t *testing.T) {
-	src := NewNullOffsetDateTime(time.Date(1961, 4, 12, 9, 7, 0, 0, time.FixedZone("UTC+03:00", 3*3600)))
+	src := NullOffsetDateTimeFromTime(time.Date(1961, 4, 12, 9, 7, 0, 0, time.FixedZone("UTC+03:00", 3*3600)))
 	data, err := json.Marshal(src)
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
@@ -40,7 +41,7 @@ func TestNullOffsetDateTimeRoundTripJSON(t *testing.T) {
 	if err := json.Unmarshal(data, &dst); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	if !dst.Valid || !dst.Val.Equal(src.Val) {
+	if !dst.Valid || !dst.Val.AsTime().Equal(src.Val.AsTime()) {
 		t.Errorf("Round-trip mismatch: %#v != %#v", dst, src)
 	}
 }
@@ -67,7 +68,7 @@ func TestNullOffsetDateTimeUnmarshalNull(t *testing.T) {
 }
 
 func TestNullOffsetDateTimeToString(t *testing.T) {
-	v := NewNullOffsetDateTime(time.Date(1969, 7, 20, 20, 17, 40, 0, time.UTC))
+	v := NullOffsetDateTimeFromTime(time.Date(1969, 7, 20, 20, 17, 40, 0, time.UTC))
 	if got := v.ToString(); got != "1969-07-20T20:17:40Z" {
 		t.Errorf("Expected canonical RFC3339, got %q", got)
 	}
@@ -78,7 +79,7 @@ func TestNullOffsetDateTimeToString(t *testing.T) {
 }
 
 func TestNullOffsetDateTime_IsEmpty(t *testing.T) {
-	v := NewNullOffsetDateTime(time.Now())
+	v := NullOffsetDateTimeFromTime(time.Now())
 	if v.IsEmpty() {
 		t.Error("Expected IsEmpty=false for valid NullOffsetDateTime")
 	}
@@ -90,7 +91,7 @@ func TestNullOffsetDateTime_IsEmpty(t *testing.T) {
 
 func TestNullOffsetDateTime_Value(t *testing.T) {
 	src := time.Date(1969, 7, 20, 20, 17, 40, 0, time.UTC)
-	v, err := NewNullOffsetDateTime(src).Value()
+	v, err := NullOffsetDateTimeFromTime(src).Value()
 	if err != nil {
 		t.Fatalf("Value: %v", err)
 	}
@@ -103,22 +104,28 @@ func TestNullOffsetDateTime_Value(t *testing.T) {
 	}
 }
 
-// TestNullOffsetDateTime_Unix verifies that Unix() returns the
-// underlying instant in seconds since the Unix epoch for a valid
-// value, and exactly 0 for a NULL (invalid) wrapper.
-func TestNullOffsetDateTime_Unix(t *testing.T) {
-	v := NewNullOffsetDateTime(time.Date(1969, 7, 20, 20, 17, 40, 0, time.UTC))
-	if got := v.Unix(); got != -14182940 {
-		t.Errorf("Expected -14182940, got %d", got)
+// TestNullOffsetDateTime_UnixOk verifies that UnixOk distinguishes a
+// valid epoch-time (e.g. exactly 0 for the Unix epoch) from a NULL
+// wrapper (which yields (0, false)).
+func TestNullOffsetDateTime_UnixOk(t *testing.T) {
+	v := NullOffsetDateTimeFromTime(time.Date(1969, 7, 20, 20, 17, 40, 0, time.UTC))
+	if got, ok := v.UnixOk(); !ok || got != -14182940 {
+		t.Errorf("Expected (-14182940, true), got (%d, %v)", got, ok)
 	}
-	if got := NewNullOffsetDateTimeEmpty().Unix(); got != 0 {
-		t.Errorf("Expected 0 for NULL, got %d", got)
+	if got, ok := NewNullOffsetDateTimeEmpty().UnixOk(); ok || got != 0 {
+		t.Errorf("Expected (0, false) for NULL, got (%d, %v)", got, ok)
+	}
+
+	// Critical regression: epoch=0 must not be confused with NULL=0.
+	epoch := NullOffsetDateTimeFromTime(time.Unix(0, 0).UTC())
+	if got, ok := epoch.UnixOk(); !ok || got != 0 {
+		t.Errorf("Expected (0, true) at Unix epoch, got (%d, %v)", got, ok)
 	}
 }
 
 func TestNullOffsetDateTime_BeforeAfter(t *testing.T) {
-	a := NewNullOffsetDateTime(time.Date(1969, 7, 20, 19, 0, 0, 0, time.UTC))
-	b := time.Date(1969, 7, 20, 20, 17, 40, 0, time.UTC)
+	a := NullOffsetDateTimeFromTime(time.Date(1969, 7, 20, 19, 0, 0, 0, time.UTC))
+	b := NullOffsetDateTimeFromTime(time.Date(1969, 7, 20, 20, 17, 40, 0, time.UTC))
 	if !a.Before(b) {
 		t.Error("Expected a.Before(b) to be true")
 	}
@@ -127,8 +134,18 @@ func TestNullOffsetDateTime_BeforeAfter(t *testing.T) {
 	}
 
 	empty := NewNullOffsetDateTimeEmpty()
-	if empty.Before(b) || empty.After(b) {
-		t.Error("Expected empty Before/After to return false")
+	// Sortable NULL model: NULL is strictly less than any valid value.
+	if !empty.Before(b) {
+		t.Error("Expected NULL.Before(valid) to be true (sortable)")
+	}
+	if empty.After(b) {
+		t.Error("Expected NULL.After(valid) to be false (sortable)")
+	}
+	if !b.After(empty) {
+		t.Error("Expected valid.After(NULL) to be true (sortable)")
+	}
+	if b.Before(empty) {
+		t.Error("Expected valid.Before(NULL) to be false (sortable)")
 	}
 }
 
@@ -138,7 +155,7 @@ func TestNullOffsetDateTimeScan(t *testing.T) {
 	if err := v.Scan(src); err != nil {
 		t.Fatalf("Scan: %v", err)
 	}
-	if !v.Valid || !v.Val.Equal(src) {
+	if !v.Valid || !v.Val.AsTime().Equal(src) {
 		t.Errorf("Round-trip mismatch")
 	}
 
@@ -159,11 +176,35 @@ func TestNullOffsetDateTime_UnmarshalZSuffix(t *testing.T) {
 	if !v.Valid {
 		t.Fatal("Expected valid")
 	}
-	if v.Val.Hour() != 4 || v.Val.Minute() != 37 || v.Val.Second() != 0 ||
-		v.Val.Nanosecond() != 123_000_000 {
+	got := v.Val.AsTime()
+	if got.Hour() != 4 || got.Minute() != 37 || got.Second() != 0 ||
+		got.Nanosecond() != 123_000_000 {
 		t.Errorf("Unexpected value: %v", v.Val)
 	}
-	if v.Val.Location() != time.UTC {
-		t.Errorf("Expected UTC, got %v", v.Val.Location())
+	if got.Location() != time.UTC {
+		t.Errorf("Expected UTC, got %v", got.Location())
+	}
+}
+
+func TestNullOffsetDateTime_In(t *testing.T) {
+	plus4 := time.FixedZone("UTC+04:00", 4*3600)
+
+	v := NullOffsetDateTimeFromTime(time.Date(2024, 7, 11, 10, 0, 0, 0, plus4))
+	if got := v.In(time.UTC).ToString(); got != "2024-07-11T06:00:00Z" {
+		t.Errorf("valid plus4 -> UTC: got %q", got)
+	}
+
+	empty := NewNullOffsetDateTimeEmpty()
+	got := empty.In(time.UTC)
+	if got.Valid {
+		t.Error("Expected NULL to propagate through In()")
+	}
+}
+
+func TestNewNullOffsetDateTime(t *testing.T) {
+	odt := NewOffsetDateTime(time.Date(2024, 7, 11, 10, 0, 0, 0, time.UTC))
+	v := NewNullOffsetDateTime(odt)
+	if !v.Valid || !v.Val.Equal(odt) {
+		t.Errorf("Expected (OffsetDateTime, Valid), got %+v", v)
 	}
 }

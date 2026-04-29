@@ -17,8 +17,16 @@ type NullLocalDateTime struct {
 }
 
 // NewNullLocalDateTime constructs a valid NullLocalDateTime wrapping value.
+// Use NullLocalDateTimeFromTime when starting from a time.Time.
 func NewNullLocalDateTime(value LocalDateTime) NullLocalDateTime {
 	return NullLocalDateTime{Val: value, Valid: true}
+}
+
+// NullLocalDateTimeFromTime constructs a valid NullLocalDateTime from
+// a time.Time. The time-of-day fields are read in t's current location;
+// the zone itself is dropped (LocalDateTime carries no zone by design).
+func NullLocalDateTimeFromTime(value time.Time) NullLocalDateTime {
+	return NullLocalDateTime{Val: LocalDateTimeFromTime(value), Valid: true}
 }
 
 // NewNullLocalDateTimeEmpty returns an invalid (NULL) NullLocalDateTime.
@@ -57,7 +65,7 @@ func (thisVal NullLocalDateTime) IsZero() bool {
 
 // ToString renders the value in the library's canonical local datetime
 // form, or "" when NULL.
-func (thisVal *NullLocalDateTime) ToString() string {
+func (thisVal NullLocalDateTime) ToString() string {
 	if !thisVal.Valid {
 		return ""
 	}
@@ -126,4 +134,92 @@ func (thisVal *NullLocalDateTime) UnmarshalJSON(data []byte) error {
 	thisVal.Valid = true
 	thisVal.Val = val
 	return nil
+}
+
+// Before reports whether thisVal precedes other under sortable NULL
+// semantics: NULL is strictly less than any valid value, two NULLs
+// compare equal (so neither is Before the other).
+func (thisVal NullLocalDateTime) Before(other NullLocalDateTime) bool {
+	if !thisVal.Valid {
+		return other.Valid
+	}
+	if !other.Valid {
+		return false
+	}
+	return thisVal.Val.Before(other.Val)
+}
+
+// After reports whether thisVal is after other under sortable NULL
+// semantics: NULL is never after any value (including another NULL).
+func (thisVal NullLocalDateTime) After(other NullLocalDateTime) bool {
+	if !thisVal.Valid {
+		return false
+	}
+	if !other.Valid {
+		return true
+	}
+	return thisVal.Val.After(other.Val)
+}
+
+// Equal reports whether thisVal and other are equal under sortable
+// NULL semantics: two NULLs are equal; NULL is never equal to a
+// valid value.
+func (thisVal NullLocalDateTime) Equal(other NullLocalDateTime) bool {
+	if !thisVal.Valid {
+		return !other.Valid
+	}
+	if !other.Valid {
+		return false
+	}
+	return thisVal.Val.Equal(other.Val)
+}
+
+// Compare returns -1, 0, or +1 as thisVal is before, equal to, or
+// after other under sortable NULL semantics.
+func (thisVal NullLocalDateTime) Compare(other NullLocalDateTime) int {
+	if !thisVal.Valid {
+		if !other.Valid {
+			return 0
+		}
+		return -1
+	}
+	if !other.Valid {
+		return +1
+	}
+	return thisVal.Val.Compare(other.Val)
+}
+
+// Add returns thisVal shifted by d. NULL propagates.
+func (thisVal NullLocalDateTime) Add(d time.Duration) NullLocalDateTime {
+	if !thisVal.Valid {
+		return thisVal
+	}
+	return NullLocalDateTime{Val: thisVal.Val.Add(d), Valid: true}
+}
+
+// AddDate returns thisVal with the given years/months/days added.
+// NULL propagates.
+func (thisVal NullLocalDateTime) AddDate(years, months, days int) NullLocalDateTime {
+	if !thisVal.Valid {
+		return thisVal
+	}
+	return NullLocalDateTime{Val: thisVal.Val.AddDate(years, months, days), Valid: true}
+}
+
+// SubOk returns (thisVal − other, true) when both operands are valid,
+// and (0, false) otherwise.
+func (thisVal NullLocalDateTime) SubOk(other NullLocalDateTime) (time.Duration, bool) {
+	if !thisVal.Valid || !other.Valid {
+		return 0, false
+	}
+	return thisVal.Val.Sub(other.Val), true
+}
+
+// Truncate returns thisVal rounded down to the nearest multiple of d
+// since the zero time. NULL propagates.
+func (thisVal NullLocalDateTime) Truncate(d time.Duration) NullLocalDateTime {
+	if !thisVal.Valid {
+		return thisVal
+	}
+	return NullLocalDateTime{Val: thisVal.Val.Truncate(d), Valid: true}
 }

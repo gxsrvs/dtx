@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-func TestNewNullDate(t *testing.T) {
+func TestNullDateFromTime(t *testing.T) {
 	d := time.Date(1961, 4, 12, 0, 0, 0, 0, time.UTC)
-	v := NewNullDate(d)
-	if !v.Valid || !v.Val.Equal(d) {
+	v := NullDateFromTime(d)
+	if !v.Valid || !v.Val.AsTime().Equal(d) {
 		t.Errorf("Expected (%v, valid), got %v", d, v)
 	}
 	if NewNullDateEmpty().Valid {
@@ -30,7 +30,7 @@ func TestParseDateFromString(t *testing.T) {
 }
 
 func TestNullDate_IsEmpty(t *testing.T) {
-	v := NewNullDate(time.Now())
+	v := NullDateFromTime(time.Now())
 	if v.IsEmpty() {
 		t.Error("Expected IsEmpty=false for valid NullDate")
 	}
@@ -42,7 +42,7 @@ func TestNullDate_IsEmpty(t *testing.T) {
 
 func TestNullDate_ToString(t *testing.T) {
 	d := time.Date(1961, 4, 12, 0, 0, 0, 0, time.UTC)
-	v := NewNullDate(d)
+	v := NullDateFromTime(d)
 	if got := v.ToString(); got != "1961-04-12" {
 		t.Errorf("Expected '1961-04-12', got %q", got)
 	}
@@ -54,7 +54,7 @@ func TestNullDate_ToString(t *testing.T) {
 
 func TestNullDate_Value(t *testing.T) {
 	d := time.Date(1961, 4, 12, 0, 0, 0, 0, time.UTC)
-	v, err := NewNullDate(d).Value()
+	v, err := NullDateFromTime(d).Value()
 	if err != nil {
 		t.Fatalf("Value: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestNullDate_Scan(t *testing.T) {
 	if err := v.Scan(d); err != nil {
 		t.Fatalf("Scan(time.Time): %v", err)
 	}
-	if !v.Valid || !v.Val.Equal(d) {
+	if !v.Valid || !v.Val.AsTime().Equal(d) {
 		t.Errorf("Round-trip mismatch: %v vs %v", v, d)
 	}
 
@@ -89,7 +89,7 @@ func TestNullDate_Scan(t *testing.T) {
 
 func TestNullDate_JSON(t *testing.T) {
 	d := time.Date(1961, 4, 12, 0, 0, 0, 0, time.UTC)
-	data, _ := json.Marshal(NewNullDate(d))
+	data, _ := json.Marshal(NullDateFromTime(d))
 	if string(data) != `"1961-04-12"` {
 		t.Errorf("Expected \"1961-04-12\", got %s", data)
 	}
@@ -123,13 +123,13 @@ func TestNullDate_JSON(t *testing.T) {
 func TestNullDateFromString(t *testing.T) {
 	s := "1961-04-12"
 	nd := NullDateFromString(&s)
-	if !nd.Valid || nd.Val.Format(time.DateOnly) != s {
+	if !nd.Valid || nd.Val.AsTime().Format(time.DateOnly) != s {
 		t.Errorf("Expected %s, got %v", s, nd)
 	}
 
 	sRu := "12.04.1961"
 	ndRu := NullDateFromString(&sRu)
-	if !ndRu.Valid || ndRu.Val.Format(RuOnlyDateMask) != sRu {
+	if !ndRu.Valid || ndRu.Val.AsTime().Format(RuOnlyDateMask) != sRu {
 		t.Errorf("Expected %s (RU), got %v", sRu, ndRu)
 	}
 
@@ -148,5 +148,13 @@ func TestDateToString(t *testing.T) {
 	d := time.Date(1961, 4, 12, 0, 0, 0, 0, time.UTC)
 	if s := DateToString(d); s != "1961-04-12" {
 		t.Errorf("Expected 1961-04-12, got %s", s)
+	}
+}
+
+func TestNewNullDate(t *testing.T) {
+	d := NewDate(time.Date(2024, 7, 11, 0, 0, 0, 0, time.UTC))
+	v := NewNullDate(d)
+	if !v.Valid || !v.Val.Equal(d) {
+		t.Errorf("Expected (Date, Valid), got %+v", v)
 	}
 }

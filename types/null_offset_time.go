@@ -12,13 +12,20 @@ import (
 // reports whether Val holds a meaningful value (true) or a SQL/JSON
 // NULL (false).
 type NullOffsetTime struct {
-	Val   time.Time
+	Val   OffsetTime
 	Valid bool
 }
 
 // NewNullOffsetTime constructs a valid NullOffsetTime wrapping value.
-func NewNullOffsetTime(value time.Time) NullOffsetTime {
+// Use NullOffsetTimeFromTime when starting from a time.Time.
+func NewNullOffsetTime(value OffsetTime) NullOffsetTime {
 	return NullOffsetTime{Val: value, Valid: true}
+}
+
+// NullOffsetTimeFromTime constructs a valid NullOffsetTime from a
+// time.Time. Equivalent to NewNullOffsetTime(OffsetTime(value)).
+func NullOffsetTimeFromTime(value time.Time) NullOffsetTime {
+	return NullOffsetTime{Val: OffsetTime(value), Valid: true}
 }
 
 // NewNullOffsetTimeEmpty returns an invalid (NULL) NullOffsetTime.
@@ -40,7 +47,7 @@ func NullOffsetTimeFromString(strValue *string) NullOffsetTime {
 	if err != nil {
 		return NewNullOffsetTimeEmpty()
 	}
-	return NewNullOffsetTime(parsed)
+	return NullOffsetTimeFromTime(parsed)
 }
 
 // IsEmpty reports whether the value is NULL (Valid == false).
@@ -61,7 +68,7 @@ func (thisVal NullOffsetTime) ToString() string {
 	if !thisVal.Valid {
 		return ""
 	}
-	return formatOffsetTime(thisVal.Val)
+	return formatOffsetTime(time.Time(thisVal.Val))
 }
 
 // Value implements the database/sql/driver.Valuer interface. A NULL
@@ -71,7 +78,7 @@ func (thisVal NullOffsetTime) Value() (driver.Value, error) {
 	if !thisVal.Valid {
 		return nil, nil
 	}
-	return thisVal.Val, nil
+	return time.Time(thisVal.Val), nil
 }
 
 // Scan implements the database/sql.Scanner interface, delegating to
@@ -85,7 +92,7 @@ func (thisVal *NullOffsetTime) Scan(value interface{}) error {
 		*thisVal = NewNullOffsetTimeEmpty()
 		return nil
 	}
-	*thisVal = NewNullOffsetTime(s.Time)
+	*thisVal = NullOffsetTimeFromTime(s.Time)
 	return nil
 }
 
@@ -101,7 +108,7 @@ func (thisVal NullOffsetTime) MarshalJSON() ([]byte, error) {
 	// "15:04:05.999999999Z07:00" is at most 24 bytes plus quotes.
 	buf := make([]byte, 0, 32)
 	buf = append(buf, '"')
-	buf = thisVal.Val.AppendFormat(buf, offsetTimeFormat)
+	buf = time.Time(thisVal.Val).AppendFormat(buf, offsetTimeFormat)
 	buf = append(buf, '"')
 	return buf, nil
 }
@@ -120,6 +127,100 @@ func (thisVal *NullOffsetTime) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	thisVal.Valid = true
-	thisVal.Val = val
+	thisVal.Val = OffsetTime(val)
 	return nil
+}
+
+// In returns the same instant rendered in loc, mirroring OffsetTime.In.
+// NULL propagates: an invalid receiver is returned unchanged.
+func (thisVal NullOffsetTime) In(loc *time.Location) NullOffsetTime {
+	if !thisVal.Valid {
+		return thisVal
+	}
+	return NullOffsetTime{Val: thisVal.Val.In(loc), Valid: true}
+}
+
+// UTC is shorthand for In(time.UTC). NULL propagates.
+func (thisVal NullOffsetTime) UTC() NullOffsetTime {
+	return thisVal.In(time.UTC)
+}
+
+// Before reports whether thisVal precedes other under sortable NULL
+// semantics: NULL is strictly less than any valid value, two NULLs
+// compare equal (so neither is Before the other).
+func (thisVal NullOffsetTime) Before(other NullOffsetTime) bool {
+	if !thisVal.Valid {
+		return other.Valid
+	}
+	if !other.Valid {
+		return false
+	}
+	return thisVal.Val.Before(other.Val)
+}
+
+// After reports whether thisVal is after other under sortable NULL
+// semantics: NULL is never after any value (including another NULL).
+func (thisVal NullOffsetTime) After(other NullOffsetTime) bool {
+	if !thisVal.Valid {
+		return false
+	}
+	if !other.Valid {
+		return true
+	}
+	return thisVal.Val.After(other.Val)
+}
+
+// Equal reports whether thisVal and other are equal under sortable
+// NULL semantics: two NULLs are equal; NULL is never equal to a
+// valid value.
+func (thisVal NullOffsetTime) Equal(other NullOffsetTime) bool {
+	if !thisVal.Valid {
+		return !other.Valid
+	}
+	if !other.Valid {
+		return false
+	}
+	return thisVal.Val.Equal(other.Val)
+}
+
+// Compare returns -1, 0, or +1 as thisVal is before, equal to, or
+// after other under sortable NULL semantics.
+func (thisVal NullOffsetTime) Compare(other NullOffsetTime) int {
+	if !thisVal.Valid {
+		if !other.Valid {
+			return 0
+		}
+		return -1
+	}
+	if !other.Valid {
+		return +1
+	}
+	return thisVal.Val.Compare(other.Val)
+}
+
+// Add returns thisVal shifted by d. NULL propagates. No modulo-24h
+// enforcement — see OffsetTime.Add.
+func (thisVal NullOffsetTime) Add(d time.Duration) NullOffsetTime {
+	if !thisVal.Valid {
+		return thisVal
+	}
+	return NullOffsetTime{Val: thisVal.Val.Add(d), Valid: true}
+}
+
+// SubOk returns (thisVal − other, true) when both operands are valid,
+// and (0, false) otherwise.
+func (thisVal NullOffsetTime) SubOk(other NullOffsetTime) (time.Duration, bool) {
+	if !thisVal.Valid || !other.Valid {
+		return 0, false
+	}
+	return thisVal.Val.Sub(other.Val), true
+}
+
+// Truncate returns thisVal rounded down to the nearest multiple of d
+// since the zero time. NULL propagates.
+func (thisVal NullOffsetTime) Truncate(d time.Duration) NullOffsetTime {
+	if !thisVal.Valid {
+		return thisVal
+	}
+	return NullOffsetTime{Val: thisVal.Val.Truncate(d), Valid: true}
 }

@@ -25,7 +25,10 @@ func IsEmpty(t interface{}) bool {
 		return v == ""
 	case int, int8, int16, int32, int64:
 		return false
-	case sql.NullString, sql.NullFloat64, sql.NullInt64, sql.NullInt32, sql.NullInt16, sql.NullBool, sql.NullTime:
+	case sql.NullString,
+		sql.NullFloat64,
+		sql.NullInt64, sql.NullInt32, sql.NullInt16, sql.NullByte,
+		sql.NullBool, sql.NullTime:
 		val, err := v.(driver.Valuer).Value()
 		return val == nil || err != nil
 	}

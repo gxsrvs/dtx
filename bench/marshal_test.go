@@ -21,7 +21,7 @@ var sampleNullInt64Empty = types.NewNullInt64Empty()
 var sampleNullBoolValid = types.NewNullBool(true)
 var sampleNullFloatValid = types.NewNullFloat(3.141592653589793)
 
-var sampleNullDateValid = types.NewNullDate(
+var sampleNullDateValid = types.NullDateFromTime(
 	time.Date(1961, 4, 12, 0, 0, 0, 0, time.UTC),
 )
 var sampleNullDateEmpty = types.NewNullDateEmpty()
@@ -32,10 +32,10 @@ var sampleNullLocalDateTimeValid = types.NewNullLocalDateTime(
 var sampleNullLocalTimeValid = types.NewNullLocalTime(
 	types.LocalTime{Hour: 2, Minute: 56, Second: 15},
 )
-var sampleNullOffsetDateTimeValid = types.NewNullOffsetDateTime(
+var sampleNullOffsetDateTimeValid = types.NullOffsetDateTimeFromTime(
 	time.Date(1969, 7, 21, 2, 56, 15, 0, time.UTC),
 )
-var sampleNullOffsetTimeValid = types.NewNullOffsetTime(
+var sampleNullOffsetTimeValid = types.NullOffsetTimeFromTime(
 	time.Date(0, 1, 1, 2, 56, 15, 0, time.UTC),
 )
 

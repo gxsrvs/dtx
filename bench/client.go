@@ -120,10 +120,10 @@ func NewClientNull(p Profile) ClientNull {
 			Document: &DocumentNull{
 				TypeID:     1,
 				Number:     types.NewNullString("VVS-1957-09-01"),
-				DateIssue:  types.NewNullDate(sampleDocIssue),
-				DateExpiry: types.NewNullDate(sampleDocExpiry),
+				DateIssue:  types.NullDateFromTime(sampleDocIssue),
+				DateExpiry: types.NullDateFromTime(sampleDocExpiry),
 			},
-			BirthDate: types.NewNullDate(sampleBirth),
+			BirthDate: types.NullDateFromTime(sampleBirth),
 		}
 	case ProfileAllNull:
 		return ClientNull{

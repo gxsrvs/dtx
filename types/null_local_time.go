@@ -15,9 +15,17 @@ type NullLocalTime struct {
 	Valid bool
 }
 
-// NewNullLocalTime constructs a valid NullLocalTime wrapping value.
+// NewNullLocalTime constructs a valid NullLocalTime wrapping value. Use
+// NullLocalTimeFromTime when starting from a time.Time.
 func NewNullLocalTime(value LocalTime) NullLocalTime {
 	return NullLocalTime{Val: value, Valid: true}
+}
+
+// NullLocalTimeFromTime constructs a valid NullLocalTime from a
+// time.Time. The wall-clock fields are read in t's current location;
+// the zone itself is dropped (LocalTime carries no zone by design).
+func NullLocalTimeFromTime(value time.Time) NullLocalTime {
+	return NullLocalTime{Val: LocalTimeFromTime(value), Valid: true}
 }
 
 // NewNullLocalTimeEmpty returns an invalid (NULL) NullLocalTime.
@@ -56,7 +64,7 @@ func (thisVal NullLocalTime) IsZero() bool {
 
 // ToString renders the value in the library's canonical local time
 // form, or "" when NULL.
-func (thisVal *NullLocalTime) ToString() string {
+func (thisVal NullLocalTime) ToString() string {
 	if !thisVal.Valid {
 		return ""
 	}
@@ -124,4 +132,84 @@ func (thisVal *NullLocalTime) UnmarshalJSON(data []byte) error {
 	thisVal.Valid = true
 	thisVal.Val = val
 	return nil
+}
+
+// Before reports whether thisVal precedes other under sortable NULL
+// semantics: NULL is strictly less than any valid value, two NULLs
+// compare equal (so neither is Before the other).
+func (thisVal NullLocalTime) Before(other NullLocalTime) bool {
+	if !thisVal.Valid {
+		return other.Valid
+	}
+	if !other.Valid {
+		return false
+	}
+	return thisVal.Val.Before(other.Val)
+}
+
+// After reports whether thisVal is after other under sortable NULL
+// semantics: NULL is never after any value (including another NULL).
+func (thisVal NullLocalTime) After(other NullLocalTime) bool {
+	if !thisVal.Valid {
+		return false
+	}
+	if !other.Valid {
+		return true
+	}
+	return thisVal.Val.After(other.Val)
+}
+
+// Equal reports whether thisVal and other are equal under sortable
+// NULL semantics: two NULLs are equal; NULL is never equal to a
+// valid value.
+func (thisVal NullLocalTime) Equal(other NullLocalTime) bool {
+	if !thisVal.Valid {
+		return !other.Valid
+	}
+	if !other.Valid {
+		return false
+	}
+	return thisVal.Val.Equal(other.Val)
+}
+
+// Compare returns -1, 0, or +1 as thisVal is before, equal to, or
+// after other under sortable NULL semantics.
+func (thisVal NullLocalTime) Compare(other NullLocalTime) int {
+	if !thisVal.Valid {
+		if !other.Valid {
+			return 0
+		}
+		return -1
+	}
+	if !other.Valid {
+		return +1
+	}
+	return thisVal.Val.Compare(other.Val)
+}
+
+// Add returns thisVal shifted by d. NULL propagates. No modulo-24h
+// enforcement — see LocalTime.Add.
+func (thisVal NullLocalTime) Add(d time.Duration) NullLocalTime {
+	if !thisVal.Valid {
+		return thisVal
+	}
+	return NullLocalTime{Val: thisVal.Val.Add(d), Valid: true}
+}
+
+// SubOk returns (thisVal − other, true) when both operands are valid,
+// and (0, false) otherwise.
+func (thisVal NullLocalTime) SubOk(other NullLocalTime) (time.Duration, bool) {
+	if !thisVal.Valid || !other.Valid {
+		return 0, false
+	}
+	return thisVal.Val.Sub(other.Val), true
+}
+
+// Truncate returns thisVal rounded down to the nearest multiple of d
+// since the zero time. NULL propagates.
+func (thisVal NullLocalTime) Truncate(d time.Duration) NullLocalTime {
+	if !thisVal.Valid {
+		return thisVal
+	}
+	return NullLocalTime{Val: thisVal.Val.Truncate(d), Valid: true}
 }

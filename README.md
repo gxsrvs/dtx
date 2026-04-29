@@ -130,6 +130,81 @@ conventions:
 | `NullDecimal` | `decimal.Decimal` (`shopspring/decimal`)  | JSON number (the form `decimal.Decimal` emits) | `decimal.Decimal.String()` — no trailing zeros | `sql.NullString` (text from the driver) | The decimal crosses the driver boundary as text to preserve precision. The helper `MulNullDecimals(a, b)` multiplies two `NullDecimal`s and returns NULL if either operand is NULL. |
 | `NullUUID`    | `uuid.UUID` (`google/uuid`)               | JSON string in canonical `8-4-4-4-12` hex form | canonical `8-4-4-4-12` hex form               | `sql.NullString` (text from the driver) | Parsed via `uuid.Parse`, which accepts the canonical form, the bracketed `{…}` form, and the URN `urn:uuid:…` form. |
 
+### Constructors for date / time types
+
+Every nullable wrapper has a primary constructor that takes its
+underlying type, and an alternative `*FromTime` constructor for
+callers that start from a `time.Time`. The not-null types follow the
+same shape: `Date` / `OffsetDateTime` / `OffsetTime` accept a
+`time.Time` directly, while `LocalDateTime` / `LocalTime` are
+field-based with a separate `*FromTime` helper (the wall-clock
+representation has no zone, so the time.Time conversion is an
+explicit step).
+
+| Type                 | Primary                                           | From `time.Time`                            | From `string`                                       |
+| -------------------- | ------------------------------------------------- | ------------------------------------------- | ------------------------------------------------- |
+| `Date`               | `NewDate(time.Time)`                              | — primary already takes `time.Time`         | `DateFromString(string) (Date, error)`            |
+| `OffsetDateTime`     | `NewOffsetDateTime(time.Time)`                    | — primary already takes `time.Time`         | `OffsetDateTimeFromString(string) (…, error)`     |
+| `OffsetTime`         | `NewOffsetTime(time.Time)`                        | — primary already takes `time.Time`         | `OffsetTimeFromString(string) (…, error)`         |
+| `LocalDateTime`      | `NewLocalDateTime(year, month, day, h, m, s, ns)` | `LocalDateTimeFromTime(time.Time)`          | `LocalDateTimeFromString(string) (…, error)`      |
+| `LocalTime`          | `NewLocalTime(hour, minute, second, ns)`          | `LocalTimeFromTime(time.Time)`              | `LocalTimeFromString(string) (…, error)`          |
+| `NullDate`           | `NewNullDate(Date)`                               | `NullDateFromTime(time.Time)`               | `NullDateFromString(*string)`                     |
+| `NullOffsetDateTime` | `NewNullOffsetDateTime(OffsetDateTime)`           | `NullOffsetDateTimeFromTime(time.Time)`     | `NullOffsetDateTimeFromString(*string)`           |
+| `NullOffsetTime`     | `NewNullOffsetTime(OffsetTime)`                   | `NullOffsetTimeFromTime(time.Time)`         | `NullOffsetTimeFromString(*string)`               |
+| `NullLocalDateTime`  | `NewNullLocalDateTime(LocalDateTime)`             | `NullLocalDateTimeFromTime(time.Time)`      | `NullLocalDateTimeFromString(*string)`            |
+| `NullLocalTime`      | `NewNullLocalTime(LocalTime)`                     | `NullLocalTimeFromTime(time.Time)`          | `NullLocalTimeFromString(*string)`                |
+
+Note the asymmetry in the **From string** column: not-null parsers
+take `string` and return `(T, error)` — a malformed input is a hard
+failure. Nullable parsers take `*string` and return `NullT` with no
+`error` — `nil` pointer, empty string, the tokens `null` / `nil`
+(case-insensitive), or any parse error all collapse to an invalid
+`NullT`. See the type's godoc for the accepted input formats.
+
+Every nullable wrapper additionally has `NewNullXEmpty()` for the
+explicit NULL case.
+
+### Methods on date / time types
+
+Every date/time type implements a curated subset of `time.Time`'s
+behavior. ✓ — provided, ✗ — not provided (with a reason), ⚠ — provided
+with a caveat documented in godoc.
+
+| Method                         | Offset*  | OffsetTime | LocalDateTime | LocalTime | Date     |
+| ------------------------------ | :------: | :--------: | :-----------: | :-------: | :------: |
+| `In(loc)` / `UTC()`            | ✓        | ✓          | ✗ no zone     | ✗ no zone | ✗ no time |
+| `Add(d)`                       | ✓        | ⚠ wraps    | ✓             | ⚠ wraps   | ✓        |
+| `AddDate(y,m,d)`               | ✓        | ✗ no date  | ✓             | ✗ no date | ✓        |
+| `Sub(other)` / `SubOk(other)`  | ✓        | ✓          | ✓             | ✓         | ✓        |
+| `Truncate(d)`                  | ✓        | ✓          | ✓             | ✓         | ✗ day-precision |
+| `Unix*()` / `Unix*Ok()`        | ✓        | ✗ no date  | ✗ needs zone  | ✗         | ✓ midnight UTC |
+| `Year/Month/Day/YearDay`       | ✓        | ✗          | fields + `YearDay()` | ✗  | ✓        |
+| `Hour/Minute/Second/Nanosecond` | ✓       | ✓          | fields        | fields    | ✗        |
+| `Before/After/Equal/Compare`   | ✓        | ✓          | ✓             | ✓         | ✓        |
+
+Notes:
+
+- **Sortable NULL semantics** for the comparison family on nullable
+  types: NULL is strictly less than any valid value, two NULLs are
+  equal. `Compare` returns `-1 / 0 / +1` accordingly.
+- **`Sub` is split** — not-null types expose `Sub(other) Duration`;
+  nullable types expose `SubOk(other) (Duration, bool)` so a NULL
+  operand never collides with a `0`-difference.
+- **`Unix*` family** — same split: not-null returns `int64`, nullable
+  returns `(int64, bool)` via `UnixOk` / `UnixMilliOk` / `UnixMicroOk`
+  / `UnixNanoOk`.
+- **`In/UTC` not on Local* / Date** — those types carry no timezone
+  by design; zone reinterpretation is meaningless. Materialise via
+  `LocalDateTime.ToTime(loc)` / `LocalTime.ToTime()` if needed.
+- **`Add` on time-only types** (`OffsetTime`, `LocalTime`) — does not
+  enforce modulo-24h. A duration past midnight rotates the implicit
+  date in the underlying `time.Time`; the date is not part of the
+  serialised form, so consume the result with that in mind.
+- **Component fields on Local***  — `LocalDateTime` and `LocalTime`
+  expose `Year/Month/Day/Hour/Minute/Second/Nanosec` as struct fields
+  directly (no method call). Only `LocalDateTime.YearDay()` is a
+  method (it is computed, not stored).
+
 ## Usage
 
 ### Basic Example
@@ -177,16 +252,16 @@ import (
 )
 
 func main() {
-    // Create nullable date
+    // Create nullable date from a time.Time
     now := time.Now()
-    nd := types.NewNullDate(now)
+    nd := types.NullDateFromTime(now)
     fmt.Println("Date:", nd.ToString())
-    
+
     // Parse date from string (supports ISO and Russian formats)
     dateStr := "1961-04-12" // Vostok 1 — first human spaceflight
     parsed, err := types.ParseDateFromString(dateStr)
     if err == nil {
-        nd2 := types.NewNullDate(*parsed)
+        nd2 := types.NullDateFromTime(*parsed)
         fmt.Println("Parsed Date:", nd2.ToString())
     }
 }
@@ -217,6 +292,29 @@ func queryUser(db *sql.DB, id int64) (*User, error) {
         Scan(&user.ID, &user.Name, &user.Birthday, &user.Active)
     return user, err
 }
+```
+
+### Timezone conversion
+
+`OffsetDateTime`, `OffsetTime` and their nullable variants expose
+`In(loc *time.Location)`, mirroring `time.Time.In`. The absolute
+instant is preserved; only the displayed offset and wall clock change.
+NULL propagates through the nullable variants.
+
+```go
+import (
+    "time"
+
+    "github.com/gxsrvs/dtx/types"
+)
+
+odt, _ := types.OffsetDateTimeFromString("2024-07-11T10:00:00+04:00")
+odt.In(time.UTC).ToString()
+// → "2024-07-11T06:00:00Z"
+
+utc, _ := types.OffsetDateTimeFromString("2024-07-11T06:00:00Z")
+utc.In(time.FixedZone("UTC+04:00", 4*3600)).ToString()
+// → "2024-07-11T10:00:00+04:00"
 ```
 
 ## Supported date formats
